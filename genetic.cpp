@@ -191,22 +191,6 @@ void evolve_population(vec_vec_int& old_generation) {
     old_generation = new_generation;
 }
 
-void display_population(vec_vec_int population, int np) {
-    int max_fitness = INT_MAX;
-    std::cout << "Gen " << np + 1 << ": \n";
-    for(vec_int member : population) {
-        for(int vertex : member) {
-            std::cout << vertex << ' ';
-        }
-        int member_fitness = fitness(member);
-        std::cout << "| " << member_fitness <<'\n';
-        if(member_fitness < max_fitness) {
-            max_fitness = member_fitness;
-        }
-    }
-    //res << max_fitness << '\n'; 
-}
-
 void dfs(int n, int v, std::vector<std::vector<int>>& graph, std::vector<bool>& visited) {
     visited[v] = true;
     for (int i = 0; i < n; ++i) {
@@ -262,7 +246,6 @@ int main(int argc, char** argv) {
     for(int i = 0; i < number_of_generations; ++i) {
         evolve_population(population);
     }
-    std::cout << fitness(population[0]) << '\n';
     return 0;
 }
 
