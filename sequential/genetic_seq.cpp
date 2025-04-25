@@ -1,4 +1,5 @@
 #include <nlohmann/json.hpp>
+#include "../utils.h"
 #include <iostream>
 #include <vector>
 #include <random>
@@ -211,28 +212,14 @@ bool is_connected(int n, std::vector<std::vector<int>> &graph) {
     return 1;
 }
 
-void read_data_from_json(std::filesystem::path test_data_path, int &n, int &s, std::vector<std::vector<int>> &graph, std::vector<int> &stop_vertices) {
-    std::ifstream file(test_data_path);
-    if (file.is_open()) {
-        json data;
-        file >> data;
-        n = data["number of vertices"];
-        s = data["number of stop vertices"];
-        graph = data["graph"].get<std::vector<std::vector<int>>>();
-        stop_vertices = data["stop vertices"].get<std::vector<int>>();
-        file.close();
-    } else {
-        std::cerr << "Unable to open file '" << test_data_path << "'." << '\n';
-    }
-}
-
 int main(int argc, char** argv) {
+    Utils utils = Utils();
     if(argc < 2) {
         std::cerr << "needs both paths to data file and to output the solution as argumets\n";
         return -1;
     }
     std::string test_data_path = argv[1];
-    read_data_from_json(test_data_path, n, s, graph, stop_vertices);
+    utils.read_data_from_json(test_data_path, n, s, graph, stop_vertices);
     if(!is_connected(n, graph)){
         std::cout << -2 << '\n';
         return 0;
@@ -246,6 +233,9 @@ int main(int argc, char** argv) {
     for(int i = 0; i < number_of_generations; ++i) {
         evolve_population(population);
     }
+    for(int i = 0; i < n; ++i)
+        std::cout << population[0][i] << ' ';
+    std::cout << fitness(population[0]) << '\n';
     return 0;
 }
 

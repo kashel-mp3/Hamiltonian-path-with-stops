@@ -3,7 +3,8 @@ import json
 import subprocess
 import time
 from collections import defaultdict
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import uuid
 
 timeout = 0.5
 
@@ -12,7 +13,9 @@ def run_tests(program_path, test_case):
         start_time = time.time()
         result = subprocess.run([program_path, test_case], encoding='utf-8', capture_output=True, check=True, timeout=timeout)
         end_time = time.time()
-        return result.stdout.strip(), end_time - start_time
+        lines = result.stdout.strip().split()
+        solution_value = int(lines[-1])
+        return solution_value, end_time - start_time
     except subprocess.TimeoutExpired as e:
         return 0, timeout
     except Exception as e:
@@ -59,7 +62,7 @@ for i in range(number_of_tests - 1):
 
     time_exact_vertices[int(descriptions[i]["number of vertices"])] += times[0][i]
     time_exact_s_to_n[float(descriptions[i]["number of stop vertices"]) / float(descriptions[i]["number of vertices"])] += times[0][i]
-    time_exact_density[max(float(descriptions[i]["maximum out degree"]),float(descriptions[i]["maximum in degree"])) / (float(int(descriptions[i]["number of vertices"]) - 1))] += times[0][i]
+    #time_exact_density[max(float(descriptions[i]["maximum out degree"]),float(descriptions[i]["maximum in degree"])) / (float(int(descriptions[i]["number of vertices"]) - 1))] += times[0][i]
 
     time_greedy_vertices[int(descriptions[i]["number of vertices"])] += times[1][i]
     time_genetic_vertices[int(descriptions[i]["number of vertices"])] += times[2][i]
@@ -113,21 +116,29 @@ acc_greedy_vertices_y = list(acc_greedy_vertices.values())
 acc_genetic_vertices_x = list(acc_genetic_vertices.keys())
 acc_genetic_vertices_y = list(acc_genetic_vertices.values())
 
-trace1 = go.Scatter(x=time_exact_vertices_x, y=time_exact_vertices_y, mode='lines', name='exact')
-trace2 = go.Scatter(x=time_greedy_vertices_x, y=time_greedy_vertices_y, mode='lines', name='greedy')
-trace3 = go.Scatter(x=time_genetic_vertices_x, y=time_genetic_vertices_y, mode='lines', name='genetic')
+# Create unique folder for plots
+unique_folder = f"plots/{uuid.uuid4()}"
+os.makedirs(unique_folder, exist_ok=True)
 
-trace4 = go.Scatter(x=acc_greedy_vertices_x, y=acc_greedy_vertices_y, mode='lines', name='greedy')
-trace5 = go.Scatter(x=acc_genetic_vertices_x, y=acc_genetic_vertices_y, mode='lines', name='genetic')
-fig1 = go.Figure(data=[trace2, trace3, trace1])
-fig2 = go.Figure(data=[trace4, trace5])
+# Plot and save time comparison
+plt.figure()
+plt.plot(time_exact_vertices_x, time_exact_vertices_y, label='exact')
+plt.plot(time_greedy_vertices_x, time_greedy_vertices_y, label='greedy')
+plt.plot(time_genetic_vertices_x, time_genetic_vertices_y, label='genetic')
+plt.title('t(|V|)')
+plt.xlabel('|V|')
+plt.ylabel('t[s]')
+plt.legend()
+plt.savefig(f"{unique_folder}/time_comparison.png")
 
-fig1.update_layout(title='t(|V|)',
-                  xaxis_title='|V|',
-                  yaxis_title='t[s]')
-fig2.update_layout(title='jakość rozwiązania',
-                  xaxis_title='|V|',
-                  yaxis_title='t[s]')
+# Plot and save accuracy comparison
+plt.figure()
+plt.plot(acc_greedy_vertices_x, acc_greedy_vertices_y, label='greedy')
+plt.plot(acc_genetic_vertices_x, acc_genetic_vertices_y, label='genetic')
+plt.title('Solution Quality')
+plt.xlabel('|V|')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.savefig(f"{unique_folder}/accuracy_comparison.png")
 
-fig1.show()
-fig2.show()
+print(f"Plots saved in folder: {unique_folder}")
