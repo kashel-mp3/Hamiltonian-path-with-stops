@@ -3,14 +3,17 @@
 #include <string>
 #include <cstdlib>
 #include <iomanip>
+#include <omp.h>
 
 using namespace std;
+
+// ./sgnp  n p s folder_name parameter_to_test min_value max_value step
 
 int main(int argc, char *argv[]) {
     int n = 5;
     float p = 50;
     int s = 3;
-    string foldername = "tests";
+    string foldername = "../tests";
     string parameter_to_test = "n";
     int min_value = 1;
     int max_value = 10;
@@ -28,6 +31,7 @@ int main(int argc, char *argv[]) {
     p = p / 100.0f;
     cout << p << '\n'; 
 
+    #pragma omp parallel for
     for (int value = min_value; value <= max_value; value += step) {
         int current_n = n;
         float current_p = p;
