@@ -1,8 +1,8 @@
 import os
 import subprocess
 
-programs = ["parallel/greedy_par", "parallel/genetic_par", "parallel/exact_par",
-            "sequential/greedy_seq", "sequential/exact_seq", "sequential/genetic_seq"]
+programs = ["parallel/greedy_par", "parallel/genetic_par", "parallel/exact_par", "parallel/brute_par",
+            "sequential/greedy_seq", "sequential/exact_seq", "sequential/genetic_seq", "sequential/brute_seq"]
 
 # Directory for compiled executables
 output_dir = "exec"

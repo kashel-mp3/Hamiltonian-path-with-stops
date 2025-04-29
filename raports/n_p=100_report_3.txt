@@ -1,0 +1,12 @@
+test_case greedy_seq_t greedy_par_t greedy_speedup exact_seq_t exact_par_t exact_speedup brute_seq_t brute_par_t brute_speedup genetic_seq_t genetic_par_t genetic_speedup
+n_9_p_100_s_4 N/A N/A N/A 0.1037 0.1013 1.02 N/A N/A N/A N/A N/A N/A
+n_10_p_100_s_5 N/A N/A N/A 0.4016 0.2017 1.99 N/A N/A N/A N/A N/A N/A
+n_3_p_100_s_2 N/A N/A N/A 0.1010 0.1016 0.99 N/A N/A N/A N/A N/A N/A
+n_12_p_100_s_6 N/A N/A N/A 1.2032 0.9024 1.33 N/A N/A N/A N/A N/A N/A
+n_4_p_100_s_2 N/A N/A N/A 0.1006 0.1014 0.99 N/A N/A N/A N/A N/A N/A
+n_2_p_100_s_2 N/A N/A N/A 0.1017 0.1018 1.00 N/A N/A N/A N/A N/A N/A
+n_5_p_100_s_2 N/A N/A N/A 0.1016 0.1017 1.00 N/A N/A N/A N/A N/A N/A
+n_7_p_100_s_3 N/A N/A N/A 0.1017 0.1016 1.00 N/A N/A N/A N/A N/A N/A
+n_6_p_100_s_3 N/A N/A N/A 0.1018 0.1017 1.00 N/A N/A N/A N/A N/A N/A
+n_11_p_100_s_5 N/A N/A N/A 3.4108 1.1020 3.10 N/A N/A N/A N/A N/A N/A
+n_8_p_100_s_4 N/A N/A N/A 0.1007 0.1015 0.99 N/A N/A N/A N/A N/A N/A

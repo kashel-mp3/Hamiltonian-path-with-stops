@@ -1,30 +1,3 @@
-/*
-Kompilacja:
-g++ permutacje3.cpp -o permutacje3
-
-g++ permutacje3.cpp -fopenmp -o permutacje3 
-
-Uruchomienie:
-./permutacje3 1
-
-
-Skrypt:
-
-#!/bin/bash
-n1=1
-n2=11
-step=1
-echo "^ \$n\$ ^ \$T_s(n)\$ ^ \$T_r(n)\$ ^ \$T_s(n) \\over T_r(n)\$ ^"
-while [ $n1 -le $n2 ]; do
- #echo n1=$n1
- #env OMP_NUM_THREADS=$n1 DRUK=Tak ./permutacje2 $n1
- # env OMP_NUM_THREADS=$n1 DRUK=Nie ./permutacje2 $n1
- ./permutacje3 $n1
- let n1=n1+step
-done
-
-*/
-
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -166,66 +139,22 @@ void find_min_max_path(Utils utils, int n, int** graph, bool* stops) {
     delete[] best_path;
 }
 
-void print(int n, int** graph, bool* stops) {
-    std::cout << "Graph:" << std::endl;
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            std::cout << graph[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    std::cout << "Stops:" << std::endl;
-    for (int i = 0; i < n; i++) {
-        std::cout << stops[i] << " ";
-    }
-    std::cout << std::endl;
-}
 
 int main(int argc, char *argv[])
 {
     Utils utils = Utils();
-    // if(argc < 2) {
-    //     std::cerr << "path to data file not provided\n";
-    //     return 1;
-    // }
-    //std::string test_data_path = argv[1];
-    std::string  test_data_path = "tests/n_p=50/n_5_p_50_s_2.json";
+    if(argc < 2) {
+        std::cerr << "path to data file not provided\n";
+        return 1;
+    }
+    std::string test_data_path = argv[1];
     int n, s;
     bool* stop_vertices;
     int** graph;
     utils.read_data_from_json_to_arrays(test_data_path, n, s, graph, stop_vertices);
 
     find_min_max_path(utils, n, graph, stop_vertices);
-    //print(n, graph, stop_vertices);
-    // if(!utils.is_connected_arrays(n, graph)) {
-    //     std::cout << "not connected \n";
-    //     return 0;
-    // } 
-//     uint64_t L1 = 0;
-//     uint64_t L2 = 0;
 
-//     std::chrono::time_point<std::chrono::system_clock> start, koniec;
-
-//     start = std::chrono::system_clock::now();
-//     L1 = f_sec(n);
-//     koniec = std::chrono::system_clock::now();
-//     std::chrono::duration<double> czas_wykonania_sec = koniec - start;
-
-//     start = std::chrono::system_clock::now();
-//     L2 = f_par(n);
-//     koniec = std::chrono::system_clock::now();
-
-//     std::chrono::duration<double> czas_wykonania_par = koniec - start;
-//     std::clog << std::fixed << std::setprecision(7);
-//     std::clog << "| " << n << " | ";
-//     std::clog << czas_wykonania_sec.count() << " | ";
-//     std::clog << czas_wykonania_par.count() << " | ";
-//     std::clog << czas_wykonania_sec.count() / czas_wykonania_par.count() << " | " << std::endl;
-
-// #ifdef _OPENMP
-//     assert(L1 == L2);
-// #endif
     utils.release_allocated_memory(n, graph, stop_vertices);
     return EXIT_SUCCESS;
 }
