@@ -49,7 +49,6 @@ vector<int> generate_random_subset(int n, int s, std::mt19937 &rng) {
 }
 
 void write_data_to_json(const string &filename, int n, float p, int s, vector<vector<int>> graph, vector<int> stop_vertices) {
-    // Ensure the directory structure exists
     std::filesystem::path file_path(filename);
     std::filesystem::create_directories(file_path.parent_path());
 

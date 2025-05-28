@@ -69,7 +69,7 @@ public:
     }
 
     static
-    void read_data_from_json_to_arrays(std::string &filename, int &n, int &s, int **&graph, bool *&stop_vertices) {
+    void read_data_from_json_to_arrays(std::string &filename, int &n, int &s, int **&graph, int *&stop_vertices) {
         std::ifstream file(filename);
         if (file.peek() == std::ifstream::traits_type::eof()) {
             std::cerr << "File '" << filename << "' is empty.\n";
@@ -95,11 +95,11 @@ public:
                 }
             }
 
-            stop_vertices = new bool[n];
+            stop_vertices = new int[s];
 
             auto stop_vertices_data = data["stop vertices"].get<std::vector<int>>();
             for (int i = 0; i < s; ++i) {
-                stop_vertices[stop_vertices_data[i]] = 1;
+                stop_vertices[i] = stop_vertices_data[i];
             }
 
             file.close();
@@ -109,7 +109,7 @@ public:
     }
 
     static
-    void release_allocated_memory(int n, int **&graph, bool *&stop_vertices) {
+    void release_allocated_memory(int n, int **&graph, int *&stop_vertices) {
         if (graph != nullptr) {
             for (int i = 0; i < n; ++i) {
                 delete[] graph[i];

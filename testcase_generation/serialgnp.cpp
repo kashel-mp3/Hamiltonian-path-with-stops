@@ -7,7 +7,7 @@
 
 using namespace std;
 
-// ./sgnp  n p s folder_name parameter_to_test min_value max_value step
+// ./sgnp  n p s folder_name parameter_to_test min_value max_value step num_instances
 
 int main(int argc, char *argv[]) {
     int n = 5;
@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
     int min_value = 1;
     int max_value = 10;
     int step = 1;
+    int num_instances = 1;
 
     if (argc > 1) n = stoi(argv[1]);
     if (argc > 2) p = stof(argv[2]); // prawdopodobieństwo krawiędzi (0-100)
@@ -27,6 +28,7 @@ int main(int argc, char *argv[]) {
     if (argc > 6) min_value = stoi(argv[6]); // dla p musi być podane jak procent
     if (argc > 7) max_value = stoi(argv[7]);
     if (argc > 8) step = stoi(argv[8]);
+    if (argc > 9) num_instances = stoi(argv[9]);
 
     p = p / 100.0f;
     cout << p << '\n'; 
@@ -45,30 +47,32 @@ int main(int argc, char *argv[]) {
             current_s = value;
         } else {
             cerr << "Invalid parameter to test: " << parameter_to_test << endl;
-            return 1;
+            exit(1);
         }
 
         current_s = current_n * (s / 100.0f);
         current_s = current_s < 2 ? 2 : int(current_s);
 
-        printf("n %d s %f p %f", current_n, current_s, current_p);
+        for (int instance = 0; instance < num_instances; ++instance) {
+            printf("n %d s %f p %f\n", current_n, current_s, current_p);
 
-        string filename = foldername + "/n_" + to_string(current_n) +
-                          "_p_" + to_string(static_cast<int>(current_p * 100)) +
-                          "_s_" + to_string((int)current_s) + ".json";
+            string filename = foldername + "/" + to_string(instance) + "_n_" + to_string(current_n) +
+                              "_p_" + to_string(static_cast<int>(current_p * 100)) +
+                              "_s_" + to_string((int)current_s) + ".json";
 
-        string command = "./gnp " + to_string(current_n) + " " +
-                         to_string(current_p) + " " +
-                         to_string(max_value) + " " + 
-                         to_string(min_value) + " " +   
-                         to_string(current_s) + " " +
-                         filename;
+            string command = "./gnp " + to_string(current_n) + " " +
+                             to_string(current_p) + " " +
+                             to_string(max_value) + " " + 
+                             to_string(min_value) + " " +   
+                             to_string(current_s) + " " +
+                             filename;
 
-        cout << "Running: " << command << endl;
-        int ret_code = system(command.c_str());
-        if (ret_code != 0) {
-            cerr << "Error: Command failed with return code " << ret_code << endl;
-            return ret_code;
+            cout << "Running: " << command << endl;
+            int ret_code = system(command.c_str());
+            if (ret_code != 0) {
+                cerr << "Error: Command failed with return code " << ret_code << endl;
+                exit(ret_code);
+            }
         }
     }
 

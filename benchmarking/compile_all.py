@@ -1,14 +1,17 @@
 import os
 import subprocess
 
-programs = ["parallel/greedy_par", "parallel/genetic_par", "parallel/exact_par", "parallel/brute_par",
-            "sequential/greedy_seq", "sequential/exact_seq", "sequential/genetic_seq", "sequential/brute_seq"]
+programs = ["parallel/greedy_par", "parallel/genetic_par", "parallel/exact_par",
+            "sequential/greedy_seq", "sequential/exact_seq", "sequential/genetic_seq"]
 
+programs = ["parallel/exact_par", "sequential/exact_seq", "parallel/exact2_par", "sequential/exact2_seq"]
+
+# "parallel/brute_par",
+#  ,"sequential/brute_seq"
 # Directory for compiled executables
 output_dir = "exec"
 os.makedirs(output_dir, exist_ok=True)
 
-# Compile each program
 for program in programs:
     source_file = f"{program}.cpp"
     output_file = os.path.join(output_dir, program)

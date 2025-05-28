@@ -213,6 +213,7 @@ int main(int argc, char** argv) {
         std::cerr << "Provide path to input file.\n";
         return -1;
     }
+
     std::string input_path = argv[1];
     utils.read_data_from_json(input_path, n, s, graph, stop_vertices);
 
