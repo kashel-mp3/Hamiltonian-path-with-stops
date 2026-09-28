@@ -32,6 +32,9 @@ int max_subpath(int *path, int path_size, bool *stop_vertices_check, int **graph
       cur_subpath = 0;
     }
   }
+  if (max_subpath < cur_subpath) {
+      max_subpath = cur_subpath;
+  }
   return max_subpath;
 }
 // Zmodyfikowana funkcja check_all_possible_paths
