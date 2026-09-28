@@ -11,10 +11,6 @@
 
 using json = nlohmann::json;
 
-typedef std::vector<int> vec_int;
-typedef std::vector<bool> vec_bool;
-typedef std::vector<std::vector<int>> vec_vec_int;
-
 struct PathWithMaxLength
 {
     std::vector<int> path;
@@ -38,7 +34,6 @@ PathWithMaxLength solve(int n, int s, const vec_vec_int &graph_original, const v
 #pragma omp for
         for (int end_vertex = 0; end_vertex < s; ++end_vertex)
         {
-            std::cout << "Processing end_vertex: " << end_vertex << std::endl;
             vec_vec_int graph = graph_original;
             std::vector<subpath> subpaths(n);
             vec_bool to_use(n, true);
@@ -58,7 +53,6 @@ PathWithMaxLength solve(int n, int s, const vec_vec_int &graph_original, const v
             stop_vertices.erase(stop_vertices.begin() + end_vertex);
 
             // ETAP I
-            std::cout << "Starting ETAP I for end_vertex: " << end_vertex << std::endl;
             for (int j = 0; j < n - s; ++j)
             {
                 int min_w = INT_MAX;
@@ -91,9 +85,7 @@ PathWithMaxLength solve(int n, int s, const vec_vec_int &graph_original, const v
             }
             if (skip)
             {
-                std::cout << "Skipping end_vertex: " << end_vertex << " due to incomplete path construction." << std::endl;
                 // ETAP II
-                std::cout << "Starting ETAP II for end_vertex: " << end_vertex << std::endl;
             }
             if (skip)
                 continue;
@@ -164,17 +156,13 @@ PathWithMaxLength solve(int n, int s, const vec_vec_int &graph_original, const v
                 int total = best_sub.weight + final_edge;
                 if (total > max_path_len)
                 {
-                    if (max_path_len < local_best.max_length)
-                    {
-                        std::cout << "Updating local best for end_vertex: " << end_vertex << " with max_path_len: " << max_path_len << std::endl;
-                    }
+                    max_path_len = total;
+                }
+                best_sub.path.push_back(all_stop_vertices[end_vertex]);
 
-                    best_sub.path.push_back(all_stop_vertices[end_vertex]);
-
-                    if (max_path_len < local_best.max_length)
-                    {
-                        local_best = {best_sub.path, max_path_len};
-                    }
+                if (max_path_len < local_best.max_length)
+                {
+                    local_best = {best_sub.path, max_path_len};
                 }
             }
 
