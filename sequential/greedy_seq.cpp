@@ -7,13 +7,8 @@
 #include <fstream>
 #include <algorithm>
 #include <climits>
-#include <omp.h>
 
 using json = nlohmann::json;
-
-typedef std::vector<int> vec_int;
-typedef std::vector<bool> vec_bool;
-typedef std::vector<std::vector<int>> vec_vec_int;
 
 struct PathWithMaxLength {
     std::vector<int> path;
@@ -27,6 +22,7 @@ struct subpath {
 
 PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vertices) {
     for (int end_vertex = 0; end_vertex < s; ++end_vertex) {
+        vec_vec_int local_graph = graph;
         std::vector<subpath> subpaths(n);
         vec_bool to_use(n, 1);
         bool skip = false;
@@ -45,9 +41,9 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
             int v_from = -1, v_to = -1;
             for (int v : stop_vertices) {
                 for (int i = 0; i < n; ++i) {
-                    int cur_w = graph[v][i] + subpaths[v].weight;
-                    if (to_use[i] && graph[v][i] && cur_w < min_w) {
-                        min_w = graph[v][i] + subpaths[v].weight;
+                    int cur_w = local_graph[v][i] + subpaths[v].weight;
+                    if (to_use[i] && local_graph[v][i] && cur_w < min_w) {
+                        min_w = local_graph[v][i] + subpaths[v].weight;
                         v_from = v;
                         v_to = i;
                     }
@@ -58,8 +54,8 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
                 break;
             }
             subpaths[v_from].path.push_back(v_to);
-            subpaths[v_from].weight += graph[v_from][v_to];
-            graph[v_from] = graph[v_to];
+            subpaths[v_from].weight += local_graph[v_from][v_to];
+            local_graph[v_from] = local_graph[v_to];
             to_use[v_to] = 0;
         }
         if (skip) {
@@ -73,10 +69,10 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
             int v_from = -1, v_to = -1;
             for (int i = 0; i < s - 2; ++i) {
                 for (int j = 0; j < s - 1; ++j) {
-                    int cur_w = graph[stop_vertices[i]][stop_vertices[j]] + subpaths[stop_vertices[i]].weight;
+                    int cur_w = local_graph[stop_vertices[i]][stop_vertices[j]] + subpaths[stop_vertices[i]].weight;
                     if (i != j && !to_use[stop_vertices[i]] && !to_use[stop_vertices[j]]
-                        && graph[stop_vertices[i]][stop_vertices[j]] && cur_w < min_w) {
-                        min_w = graph[stop_vertices[i]][stop_vertices[j]] + subpaths[stop_vertices[i]].weight;
+                        && local_graph[stop_vertices[i]][stop_vertices[j]] && cur_w < min_w) {
+                        min_w = local_graph[stop_vertices[i]][stop_vertices[j]] + subpaths[stop_vertices[i]].weight;
                         v_from = stop_vertices[i];
                         v_to = stop_vertices[j];
                     }
@@ -87,12 +83,12 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
                 break;
             }
             subpaths[v_from].path.insert(subpaths[v_from].path.end(), subpaths[v_to].path.begin(), subpaths[v_to].path.end());
-            subpaths[v_from].weight += graph[v_from][v_to];
+            subpaths[v_from].weight += local_graph[v_from][v_to];
             if (subpaths[v_from].weight > max_path_len) {
                 max_path_len = subpaths[v_from].weight;
             }
             subpaths[v_from].weight = subpaths[v_to].weight;
-            graph[v_from] = graph[v_to];
+            local_graph[v_from] = local_graph[v_to];
             to_use[v_to] = 1;
         }
         if (skip) {
@@ -104,9 +100,9 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
                 path = subpaths[v];
             }
         }
-        if (graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]]) {
-            if (path.weight + graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]] > max_path_len) {
-                max_path_len = path.weight + graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]];
+        if (local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]]) {
+            if (path.weight + local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]] > max_path_len) {
+                max_path_len = path.weight + local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]];
             }
         } else continue;
         path.path.push_back(all_stop_vertices[end_vertex]);
