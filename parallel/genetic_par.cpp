@@ -8,10 +8,6 @@
 #include <climits>
 #include <omp.h>
 
-typedef std::vector<int> vec_int;
-typedef std::vector<bool> vec_bool;
-typedef std::vector<std::vector<int>> vec_vec_int;
-
 using json = nlohmann::json;
 
 int n;
@@ -60,11 +56,16 @@ void populate(vec_vec_int& population) {
         #pragma omp for
         for (int i = 0; i < new_solutions; ++i) {
             vec_int perm;
+            int attempts = 0;
+            const int max_attempts = 100000;
             do {
                 perm = base_permutation;
                 std::shuffle(perm.begin(), perm.end(), rng);
-            } while (!is_valid_solution(perm));
-            local_pop.push_back(perm);
+                ++attempts;
+            } while (!is_valid_solution(perm) && attempts < max_attempts);
+            if (attempts < max_attempts) {
+                local_pop.push_back(perm);
+            }
         }
 
         #pragma omp critical
@@ -126,7 +127,7 @@ vec_vec_int rank_based_selection(const vec_vec_int& population) {
     double total_rank = (population_size * (population_size + 1)) / 2.0;
     std::vector<double> prob(population_size);
     for (int i = 0; i < population_size; ++i)
-        prob[i] = (i + 1) / total_rank;
+        prob[i] = (population_size - i) / total_rank;
 
     std::vector<double> cum_prob(population_size);
     cum_prob[0] = prob[0];

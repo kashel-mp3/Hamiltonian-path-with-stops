@@ -7,10 +7,6 @@
 #include <fstream>
 #include <climits>
 
-typedef std::vector<int> vec_int;
-typedef std::vector<bool> vec_bool;
-typedef std::vector<std::vector<int>> vec_vec_int;
-
 using json = nlohmann::json;
 
 int n;
@@ -22,7 +18,6 @@ int num_parents = population_size / 2 - (population_size % 2);
 vec_int stop_vertices;
 vec_bool stop_vertices_check;
 vec_vec_int graph;
-std::ofstream res("genetic.txt");
 
 bool is_valid_solution(vec_int solution){
     int size = solution.size();
@@ -61,10 +56,15 @@ void populate(vec_vec_int& population){
     std::random_device rd;
     std::default_random_engine rng(rd());
     for(int i = 0; i < new_solutions; ++i) {
+        int attempts = 0;
+        const int max_attempts = 100000;
         do {
             std::shuffle(permutation.begin(), permutation.end(), rng);
-        } while(!is_valid_solution(permutation));
-        population.push_back(permutation);
+            ++attempts;
+        } while(!is_valid_solution(permutation) && attempts < max_attempts);
+        if(attempts < max_attempts) {
+            population.push_back(permutation);
+        }
     }
 }
 
@@ -99,10 +99,6 @@ void mutate(std::vector<std::vector<int>>& population, const std::vector<bool>& 
                     int other_pos = other_ones[other_index];
                     std::swap(individual[swap_position], individual[other_pos]);
                 }
-            } else if (stop_vertices_check[individual[swap_position]]) {
-                std::uniform_int_distribution<int> other_dist(0, individual.size() - 1);
-                int other_pos = other_dist(gen);
-                std::swap(individual[swap_position], individual[other_pos]);
             } else {
                 int start_pos = 1;
                 int end_pos = individual.size() - 2;
@@ -139,7 +135,7 @@ vec_vec_int rank_based_selection(vec_vec_int& population) {
     double total_rank = (population_size * (population_size + 1)) / 2.0;
     std::vector<double> selection_probabilities(population_size);
     for (int i = 0; i < population_size; ++i) {
-        selection_probabilities[i] = (i + 1) / total_rank;
+        selection_probabilities[i] = (population_size - i) / total_rank;
     }
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -162,10 +158,6 @@ void evolve_population(vec_vec_int& old_generation) {
     vec_vec_int parents = rank_based_selection(old_generation);
     vec_vec_int new_generation = old_generation;
     new_generation.erase(new_generation.begin() + elite_size, new_generation.end());
-    for(vec_int member : new_generation) {
-        int member_fitness = fitness(member);
-        //std::cout << member_fitness << '\n';
-    }
     for(int i = 1; i < parents.size(); i += 2) {
         vec_vec_int offsprings;
         vec_int parent_A = parents[i - 1];
@@ -183,7 +175,7 @@ void evolve_population(vec_vec_int& old_generation) {
         }
     }
     populate(new_generation);
-    //mutate(new_generation, stop_vertices_check);
+    mutate(new_generation, stop_vertices_check);
     std::sort(new_generation.begin(), new_generation.end(), [](const vec_int& a, const vec_int& b) {
         return fitness(a) < fitness(b);
     });
