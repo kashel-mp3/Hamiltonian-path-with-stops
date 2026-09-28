@@ -50,8 +50,10 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
-        current_s = current_n * (s / 100.0f);
-        current_s = current_s < 2 ? 2 : int(current_s);
+        if (parameter_to_test != "s") {
+            current_s = current_n * (s / 100.0f);
+            current_s = current_s < 2 ? 2 : int(current_s);
+        }
 
         for (int instance = 0; instance < num_instances; ++instance) {
             printf("n %d s %f p %f\n", current_n, current_s, current_p);
