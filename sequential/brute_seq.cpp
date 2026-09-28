@@ -150,12 +150,18 @@ int main(int argc, char *argv[])
     }
     std::string test_data_path = argv[1];
     int n, s;
-    bool *stop_vertices;
+    int *stop_vertices;
     int **graph;
     utils.read_data_from_json_to_arrays(test_data_path, n, s, graph, stop_vertices);
 
-    find_min_max_path(utils, n, graph, stop_vertices);
+    bool *stop_vertices_check = new bool[n]();
+    for (int i = 0; i < s; ++i) {
+        stop_vertices_check[stop_vertices[i]] = true;
+    }
+
+    find_min_max_path(utils, n, graph, stop_vertices_check);
 
     utils.release_allocated_memory(n, graph, stop_vertices);
+    delete[] stop_vertices_check;
     return EXIT_SUCCESS;
 }

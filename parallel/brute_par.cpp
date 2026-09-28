@@ -221,25 +221,6 @@ void find_min_max_path(Utils utils, int n, int **graph, bool *stops)
     // global_best_path is a std::vector and cleans itself up
 }
 
-// void print(int n, int **graph, bool *stops)
-// {
-//     std::cout << "Graph:" << std::endl;
-//     for (int i = 0; i < n; i++)
-//     {
-//         for (int j = 0; j < n; j++)
-//         {
-//             std::cout << graph[i][j] << " ";
-//         }
-//         std::cout << std::endl;
-//     }
-
-//     std::cout << "Stops:" << std::endl;
-//     for (int i = 0; i < n; i++)
-//     {
-//         std::cout << stops[i] << " ";
-//     }
-//     std::cout << std::endl;
-// }
 
 int main(int argc, char *argv[])
 {
@@ -251,12 +232,18 @@ int main(int argc, char *argv[])
     }
     std::string test_data_path = argv[1];
     int n, s;
-    bool *stop_vertices;
+    int *stop_vertices;
     int **graph;
     utils.read_data_from_json_to_arrays(test_data_path, n, s, graph, stop_vertices);
 
-    find_min_max_path(utils, n, graph, stop_vertices);
+    bool *stop_vertices_check = new bool[n]();
+    for (int i = 0; i < s; ++i) {
+        stop_vertices_check[stop_vertices[i]] = true;
+    }
 
+    find_min_max_path(utils, n, graph, stop_vertices_check);
+
+    delete[] stop_vertices_check;
     utils.release_allocated_memory(n, graph, stop_vertices);
     return EXIT_SUCCESS;
 }
