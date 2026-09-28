@@ -7,10 +7,7 @@
 #include <chrono>
 #include <iomanip>
 #include <cuda_runtime.h>
-#include "utils.h"
-#include <vector>
-#include <string>
-#include <fstream>
+#include "../utils.h"
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
