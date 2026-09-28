@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -16,22 +17,21 @@ public:
     static
     void read_data_from_json(std::string &filename, int &n, int &s, std::vector<std::vector<int>> &graph, std::vector<int> &stop_vertices) {
         std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Unable to open file '" << filename << "'." << '\n';
+            return;
+        }
         if (file.peek() == std::ifstream::traits_type::eof()) {
             std::cerr << "File '" << filename << "' is empty.\n";
             return;
         }
-        
-        if (file.is_open()) {
-            json data;
-            file >> data;
-            n = data["number of vertices"];
-            s = data["number of stop vertices"];
-            graph = data["graph"].get<std::vector<std::vector<int>>>();
-            stop_vertices = data["stop vertices"].get<std::vector<int>>();
-            file.close();
-        } else {
-            std::cerr << "Unable to open file '" << filename << "'." << '\n';
-        }
+        json data;
+        file >> data;
+        n = data["number of vertices"];
+        s = data["number of stop vertices"];
+        graph = data["graph"].get<std::vector<std::vector<int>>>();
+        stop_vertices = data["stop vertices"].get<std::vector<int>>();
+        file.close();
     }
     
     static
@@ -71,41 +71,41 @@ public:
     static
     void read_data_from_json_to_arrays(std::string &filename, int &n, int &s, int **&graph, int *&stop_vertices) {
         std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Unable to open file '" << filename << "'." << '\n';
+            return;
+        }
         if (file.peek() == std::ifstream::traits_type::eof()) {
             std::cerr << "File '" << filename << "' is empty.\n";
             return;
         }
 
-        if (file.is_open()) {
-            json data;
-            file >> data;
-            n = data["number of vertices"];
-            s = data["number of stop vertices"];
+        json data;
+        file >> data;
+        n = data["number of vertices"];
+        s = data["number of stop vertices"];
 
-            graph = new int*[n];
-            for (int i = 0; i < n; ++i) {
-                graph[i] = new int[n];
-            }
-
-            // Fill graph
-            auto graph_data = data["graph"].get<std::vector<std::vector<int>>>();
-            for (int i = 0; i < n; ++i) {
-                for (int j = 0; j < n; ++j) {
-                    graph[i][j] = graph_data[i][j];
-                }
-            }
-
-            stop_vertices = new int[s];
-
-            auto stop_vertices_data = data["stop vertices"].get<std::vector<int>>();
-            for (int i = 0; i < s; ++i) {
-                stop_vertices[i] = stop_vertices_data[i];
-            }
-
-            file.close();
-        } else {
-            std::cerr << "Unable to open file '" << filename << "'." << '\n';
+        graph = new int*[n];
+        for (int i = 0; i < n; ++i) {
+            graph[i] = new int[n];
         }
+
+        // Fill graph
+        auto graph_data = data["graph"].get<std::vector<std::vector<int>>>();
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                graph[i][j] = graph_data[i][j];
+            }
+        }
+
+        stop_vertices = new int[s];
+
+        auto stop_vertices_data = data["stop vertices"].get<std::vector<int>>();
+        for (int i = 0; i < s; ++i) {
+            stop_vertices[i] = stop_vertices_data[i];
+        }
+
+        file.close();
     }
 
     static
