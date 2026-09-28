@@ -8,7 +8,7 @@
 #include <climits>
 #include <filesystem>
 #include <omp.h>
-#include <atomic> // Można rozważyć dla min_max_subpath, ale critical jest prostsze
+#include <atomic> 
 
 using json = nlohmann::json;
 
@@ -37,32 +37,30 @@ int max_subpath(int *path, int path_size, bool *stop_vertices_check, int **graph
   }
   return max_subpath;
 }
-// Zmodyfikowana funkcja check_all_possible_paths
-// Przyjmuje referencję do globalnego min_max_l i wskaźnik do globalnego opt_path
-// Wprowadzono sekcję krytyczną do aktualizacji globalnego optimum
+
 void check_all_possible_paths(int pos, int cur_l, int max_l, int used_s, int *path, bool *visited,
                               int &min_max_l, int *opt_path, int n, int s, bool *stops, int **graph,
-                              omp_lock_t *lock) // Dodajemy blokadę jako argument
+                              omp_lock_t *lock) 
 {
-  // Pruning na podstawie bieżącej ścieżki (max_l) i globalnego minimum (min_max_l)
-  // Odczyt min_max_l nie musi być chroniony, ale może być lekko nieaktualny.
-  // Jeśli chcemy najświeższą wartość, można użyć #pragma omp atomic read
-  // ale często nie jest to konieczne.
-  if (max_l >= min_max_l)
+  
+  int current_min_max_top;
+  #pragma omp atomic read
+  current_min_max_top = min_max_l;
+  if (max_l >= current_min_max_top)
   {
-    return; // Przycinanie na podstawie już osiągniętego max_l
+    return; 
   }
 
   if (pos == n)
   {
-    // Znaleziono kompletną ścieżkę, sprawdzamy czy jest lepsza
-    omp_set_lock(lock); // Zablokuj przed dostępem do współdzielonych zmiennych
+    
+    omp_set_lock(lock); 
     if (max_l < min_max_l)
     {
       min_max_l = max_l;
       std::copy(path, path + n, opt_path);
     }
-    omp_unset_lock(lock); // Odblokuj
+    omp_unset_lock(lock); 
     return;
   }
 
@@ -79,81 +77,72 @@ void check_all_possible_paths(int pos, int cur_l, int max_l, int used_s, int *pa
       if (stops[v])
       {
         ++new_used_s;
-        // Sprawdzenie warunku liczby przystanków (jeśli jest wymagane 'dokładnie s')
+        
         if (new_used_s > s || (new_used_s == s && pos != n - 1))
         {
           visited[v] = false;
-          continue; // Ścieżka nie spełnia warunków przystanków
+          continue; 
         }
 
         if (new_max_l < new_cur_l)
         {
-          // Sprawdzenie przycinania *przed* rekurencyjnym wywołaniem
-          // Porównujemy potencjalny nowy max_l (czyli new_cur_l) z globalnym min_max_l
-          if (new_cur_l >= min_max_l) // Odczyt min_max_l
+          
+          int current_min_max_inner;
+          #pragma omp atomic read
+          current_min_max_inner = min_max_l;
+          if (new_cur_l >= current_min_max_inner) 
           {
             visited[v] = false;
-            continue; // Ta gałąź nie może dać lepszego wyniku
+            continue; 
           }
-          new_max_l = new_cur_l; // Aktualizuj max_l dla tej ścieżki
+          new_max_l = new_cur_l; 
         }
-        new_cur_l = 0; // Resetuj licznik długości podścieżki
+        new_cur_l = 0; 
       }
-      // Kontynuuj rekurencję z zaktualizowanymi wartościami
-      // Przekazujemy te same globalne zmienne min_max_l i opt_path oraz blokadę
+      
       check_all_possible_paths(pos + 1, new_cur_l, new_max_l, new_used_s, path, visited, min_max_l, opt_path, n, s, stops, graph, lock);
-      visited[v] = false; // Backtracking
+      visited[v] = false; 
     }
   }
 }
 
-// Zmodyfikowana funkcja solve
 int *solve(int n, int s, int **graph, bool *stop_vertices_check, int n_threads = 8)
 {
   int *opt_path = new int[n];
-  // Inicjalizacja globalnego minimum - można użyć std::atomic<int> jeśli chcemy unikać blokad przy odczycie
+  
   int min_max_subpath = INT_MAX;
 
   omp_set_num_threads(n_threads);
 
-  // Inicjalizacja blokady OpenMP
   omp_lock_t writelock;
   omp_init_lock(&writelock);
 
-// Usunięto 'shared(opt_path, min_max_subpath)' - dostęp będzie zarządzany przez blokadę
-// Usunięto 'private(chunk_size)' - nie jest używane w pętli for
 #pragma omp parallel shared(graph, stop_vertices_check, n, s, min_max_subpath, opt_path, writelock)
   {
-    // Każdy wątek ma swoje lokalne kopie do eksploracji
+    
     int *path = new int[n];
     bool *visited = new bool[n];
 
-// Pętla for bez lokalnych zmiennych min/opt - operuje na globalnych
-// Usunięto 'private(path, visited, local_opt_path, local_min_max)' - path i visited są lokalne wątku, reszta globalna
-// schedule(dynamic) może być dobrym wyborem przy nierównomiernym czasie obliczeń dla różnych 'i'
 #pragma omp for schedule(dynamic)
     for (int i = 0; i < n; ++i)
     {
+      if (!stop_vertices_check[i]) continue;
       std::fill(visited, visited + n, false);
       visited[i] = true;
       path[0] = i;
 
-      // Wywołujemy rekurencję, przekazując GLOBALNE min_max_subpath, opt_path i blokadę
       check_all_possible_paths(1, 0, 0, (stop_vertices_check[i] ? 1 : 0), path, visited,
                                min_max_subpath, opt_path,
                                n, s, stop_vertices_check, graph, &writelock);
-      // Nie potrzebujemy już lokalnego agregowania wyników ani sekcji krytycznej tutaj
-      // Aktualizacje globalnego optimum dzieją się wewnątrz check_all_possible_paths
+      
     }
-    // Sprzątanie pamięci lokalnej wątku
+    
     delete[] path;
     delete[] visited;
-  } // Koniec regionu równoległego
+  } 
 
-  // Zniszczenie blokady
   omp_destroy_lock(&writelock);
 
-  // Sprawdzenie, czy znaleziono jakiekolwiek rozwiązanie
   if (min_max_subpath == INT_MAX)
   {
     delete[] opt_path;
@@ -162,7 +151,6 @@ int *solve(int n, int s, int **graph, bool *stop_vertices_check, int n_threads =
   return opt_path;
 }
 
-// Funkcja main pozostaje bez zmian, poza ewentualnym uwzględnieniem zmian w solve (np. brak chunk_size)
 int main(int argc, char **argv)
 {
   Utils utils = Utils();
@@ -196,8 +184,8 @@ int main(int argc, char **argv)
     delete[] stop_vertices_check;
     return 0;
   }
-  // Pobranie liczby wątków z argumentu lub ustawienie domyślnej
-  int num_threads = 8; // Domyślnie
+  
+  int num_threads = 8; 
   if (argc >= 3)
   {
     try
@@ -221,29 +209,27 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  // Wywołanie solve z podaną liczbą wątków
   int *solution = solve(n, s, graph, stop_vertices_check, num_threads);
 
   if (solution)
   {
-    // Obliczanie max_subpath dla znalezionego rozwiązania
+    
     int final_max_subpath = max_subpath(solution, n, stop_vertices_check, graph);
 
     for (int i = 0; i < n; ++i)
     {
-      // Poprawka: Wypisywanie ścieżki - oryginalny kod miał błąd logiczny w warunku break
+      
       std::cout << solution[i] << " ";
     }
-    // Wypisanie obliczonej maksymalnej długości podścieżki
+    
     std::cout << final_max_subpath << '\n';
     delete[] solution;
   }
   else
   {
-    std::cout << "-1\n"; // Zgodnie z wymaganiami wielu zadań tego typu
+    std::cout << "-1\n"; 
   }
 
-  // Sprzątanie pamięci
   delete[] stop_vertices;
   for (int i = 0; i < n; ++i)
   {

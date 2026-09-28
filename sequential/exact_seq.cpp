@@ -92,11 +92,12 @@ int *solve(int n, int s, int **graph, bool *stop_vertices_check)
 
   for (int i = 0; i < n; ++i)
   {
+    if (!stop_vertices_check[i]) continue;
     int *path = new int[n];
     bool *visited = new bool[n]();
     visited[i] = true;
     path[0] = i;
-    check_all_possible_paths(1, 0, 0, 1, path, visited, local_min_max, local_opt_path,
+    check_all_possible_paths(1, 0, 0, (stop_vertices_check[i] ? 1 : 0), path, visited, local_min_max, local_opt_path,
                              n, s, stop_vertices_check, graph);
     delete[] path;
     delete[] visited;
