@@ -1,13 +1,3 @@
-/*
-Kompilacja:
-g++ permutacje3.cpp -o permutacje3
-
-g++ permutacje3.cpp -fopenmp -o permutacje3
-
-Uruchomienie:
-./permutacje3 1
-*/
-
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -56,7 +46,8 @@ void get_kth_permutation(unsigned int n, uint64_t k, const std::vector<uint64_t>
     }
 }
 
-bool is_hamiltonian(int n, int **graph, const int *permutation) {
+bool is_hamiltonian(int n, int **graph, const int *permutation, const bool *stops) {
+    if (!stops[permutation[0]] || !stops[permutation[n - 1]]) return false;
     for (int j = 0; j < n - 1; j++) {
         if (graph[permutation[j]][permutation[j + 1]] == 0) {
             return false;
@@ -119,7 +110,7 @@ void find_min_max_path(Utils utils, int n, int **graph, bool *stops) {
     for (uint64_t k = 0; k < permutation_count; ++k) {
         get_kth_permutation(n, k, factorials, current_perm_buffer.data());
 
-        if (is_hamiltonian(n, graph, current_perm_buffer.data())) {
+        if (is_hamiltonian(n, graph, current_perm_buffer.data(), stops)) {
             int current_max_subpath = max_subpath(n, current_perm_buffer.data(), graph, stops);
 
             if (current_max_subpath < global_min_max) {
@@ -138,7 +129,6 @@ void find_min_max_path(Utils utils, int n, int **graph, bool *stops) {
         std::cout << global_min_max << '\n';
     }
 }
-
 
 int main(int argc, char *argv[])
 {
