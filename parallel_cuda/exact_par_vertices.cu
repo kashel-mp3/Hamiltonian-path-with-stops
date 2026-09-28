@@ -33,19 +33,21 @@ struct DFS_State
   int cur_l;
   int max_l;
   int child_idx_to_try;
+  int used_s;
 };
 
 __global__ void solve_kernel_cooperative_pruning(
     const int *d_graph,
     const bool *d_stop_vertices_check,
     int n,
+    int s,
     int *d_min_max_l_shared_for_pruning,
     int *d_all_threads_min_max_l,
     int *d_all_threads_paths)
 {
   int start_node_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-  if (start_node_idx >= n)
+  if (start_node_idx >= n || !d_stop_vertices_check[start_node_idx])
   {
     return;
   }
@@ -67,7 +69,7 @@ __global__ void solve_kernel_cooperative_pruning(
 
   current_path[0] = start_node_idx;
   visited[start_node_idx] = true;
-  dfs_stack[++stack_top] = {start_node_idx, 1, 0, 0, 0};
+  dfs_stack[++stack_top] = {start_node_idx, 1, 0, 0, 0, 1};
 
   int global_best_for_pruning_snapshot;
 
@@ -120,6 +122,7 @@ __global__ void solve_kernel_cooperative_pruning(
         v_state.current_node_val = v_node;
         v_state.path_pos = u_state.path_pos + 1;
         v_state.child_idx_to_try = 0;
+        v_state.used_s = u_state.used_s;
 
         int edge_weight = d_graph[u_state.current_node_val * n + v_node];
         int accumulated_segment_len_at_v = u_state.cur_l + edge_weight;
@@ -128,6 +131,16 @@ __global__ void solve_kernel_cooperative_pruning(
 
         bool v_is_designated_stop = d_stop_vertices_check[v_node];
         bool v_completes_hamiltonian_path = (v_state.path_pos == n);
+
+        if (v_is_designated_stop)
+        {
+          v_state.used_s++;
+          if (v_state.used_s > s || (v_state.used_s == s && !v_completes_hamiltonian_path))
+          {
+            visited[v_node] = false;
+            continue;
+          }
+        }
 
         if (v_is_designated_stop || v_completes_hamiltonian_path)
         {
@@ -285,7 +298,7 @@ int main(int argc, char **argv)
   CUDA_CHECK(cudaEventRecord(kernel_start_event));
 
   solve_kernel_cooperative_pruning<<<num_blocks, threads_per_block>>>(
-      d_graph_flat, d_stop_vertices_check_gpu, n,
+      d_graph_flat, d_stop_vertices_check_gpu, n, s_num_designated_stops_in_list,
       d_min_max_l_shared_for_pruning,
       d_all_threads_min_max_l, d_all_threads_paths);
 

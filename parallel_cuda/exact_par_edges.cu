@@ -39,6 +39,7 @@ struct DFS_State
   int cur_l;
   int max_l;
   int child_idx_to_try;
+  int used_s;
 };
 
 __global__ void solve_kernel_decoupled_work(
@@ -47,6 +48,7 @@ __global__ void solve_kernel_decoupled_work(
     int n,
     const DFS_Task *d_tasks,
     int num_tasks,
+    int s,
     int *d_min_max_l_shared_for_pruning,
     int *d_all_tasks_min_max_l,
     int *d_all_tasks_paths)
@@ -85,13 +87,15 @@ __global__ void solve_kernel_decoupled_work(
   int initial_cur_l = initial_edge_weight;
   int initial_max_l = 0;
 
+  int initial_used_s = 1; 
   if (d_stop_vertices_check[second_node_val])
   {
+    initial_used_s++;
     initial_max_l = initial_cur_l;
     initial_cur_l = 0;
   }
 
-  dfs_stack[++stack_top] = {second_node_val, 2, initial_cur_l, initial_max_l, 0};
+  dfs_stack[++stack_top] = {second_node_val, 2, initial_cur_l, initial_max_l, 0, initial_used_s};
 
   int global_best_for_pruning_snapshot;
 
@@ -140,6 +144,7 @@ __global__ void solve_kernel_decoupled_work(
         v_state.current_node_val = v_node_candidate_idx;
         v_state.path_pos = u_state.path_pos + 1;
         v_state.child_idx_to_try = 0;
+        v_state.used_s = u_state.used_s;
 
         int edge_weight = d_graph[u_state.current_node_val * n + v_node_candidate_idx];
         int accumulated_segment_len_at_v = u_state.cur_l + edge_weight;
@@ -147,6 +152,16 @@ __global__ void solve_kernel_decoupled_work(
 
         bool v_is_designated_stop = d_stop_vertices_check[v_node_candidate_idx];
         bool v_completes_hamiltonian_path = (v_state.path_pos == n);
+
+        if (v_is_designated_stop)
+        {
+          v_state.used_s++;
+          if (v_state.used_s > s || (v_state.used_s == s && !v_completes_hamiltonian_path))
+          {
+            visited[v_node_candidate_idx] = false;
+            continue;
+          }
+        }
 
         if (v_is_designated_stop || v_completes_hamiltonian_path)
         {
@@ -241,35 +256,6 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  std::vector<DFS_Task> h_tasks;
-  for (int i = 0; i < n; ++i)
-  {
-    for (int j = 0; j < n; ++j)
-    {
-      if (i != j && h_graph_2d[i][j] > 0)
-      {
-        h_tasks.push_back({i, j});
-      }
-    }
-  }
-
-  if (h_tasks.empty())
-  {
-      std::cout << "-1 (no edges in graph, cannot form a path)" << std::endl;
-      utils.release_allocated_memory(n, h_graph_2d, h_designated_stop_vertices_indices);
-      return 0;
-  }
-
-
-  int *h_graph_flat = new int[n * n];
-  for (int i = 0; i < n; ++i)
-  {
-    for (int j = 0; j < n; ++j)
-    {
-      h_graph_flat[i * n + j] = h_graph_2d[i][j];
-    }
-  }
-
   bool *h_stop_vertices_check = new bool[n]();
   for (int i = 0; i < s_num_designated_stops_in_list; ++i)
   {
@@ -279,6 +265,34 @@ int main(int argc, char **argv)
     }
   }
 
+  std::vector<DFS_Task> h_tasks;
+  for (int i = 0; i < n; ++i)
+  {
+    for (int j = 0; j < n; ++j)
+    {
+      if (h_stop_vertices_check[i] && i != j && h_graph_2d[i][j] > 0)
+      {
+        h_tasks.push_back({i, j});
+      }
+    }
+  }
+
+  if (h_tasks.empty())
+  {
+      std::cout << "-1 (no edges in graph, cannot form a path)" << std::endl;
+      delete[] h_stop_vertices_check;
+      utils.release_allocated_memory(n, h_graph_2d, h_designated_stop_vertices_indices);
+      return 0;
+  }
+
+  int *h_graph_flat = new int[n * n];
+  for (int i = 0; i < n; ++i)
+  {
+    for (int j = 0; j < n; ++j)
+    {
+      h_graph_flat[i * n + j] = h_graph_2d[i][j];
+    }
+  }
   if (n > 0 && !utils.is_connected_arrays(n, h_graph_2d))
   {
     std::cout << "-2 (graph not connected)" << std::endl;
@@ -327,7 +341,7 @@ int main(int argc, char **argv)
 
   solve_kernel_decoupled_work<<<num_blocks, threads_per_block>>>(
       d_graph_flat, d_stop_vertices_check_gpu, n,
-      d_tasks, num_tasks,
+      d_tasks, num_tasks, s_num_designated_stops_in_list,
       d_min_max_l_shared_for_pruning,
       d_all_tasks_min_max_l, d_all_tasks_paths);
 
