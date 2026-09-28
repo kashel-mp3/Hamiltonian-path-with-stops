@@ -1,5 +1,5 @@
 #include <nlohmann/json.hpp>
-#include "../utils.h" // Ensure the relative path is correct or adjust it to the actual location of utils.h
+#include "../utils.h" 
 #include <string>
 #include <iostream>
 #include <vector>
@@ -7,7 +7,7 @@
 #include <fstream>
 #include <algorithm>
 #include <climits>
-#include <omp.h> // Ensure OpenMP is installed and properly configured in your build system
+#include <omp.h> 
 
 using json = nlohmann::json;
 
@@ -52,7 +52,6 @@ PathWithMaxLength solve(int n, int s, const vec_vec_int &graph_original, const v
             vec_int stop_vertices = all_stop_vertices;
             stop_vertices.erase(stop_vertices.begin() + end_vertex);
 
-            // ETAP I
             for (int j = 0; j < n - s; ++j)
             {
                 int min_w = INT_MAX;
@@ -85,12 +84,11 @@ PathWithMaxLength solve(int n, int s, const vec_vec_int &graph_original, const v
             }
             if (skip)
             {
-                // ETAP II
+                
             }
             if (skip)
                 continue;
 
-            // ETAP II
             to_use[all_stop_vertices[end_vertex]] = true;
             int max_path_len = 0;
 

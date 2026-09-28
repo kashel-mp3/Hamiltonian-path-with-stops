@@ -11,7 +11,6 @@ typedef std::vector<int> vec_int;
 typedef std::vector<bool> vec_bool;
 typedef std::vector<std::vector<int>> vec_vec_int;
 
-
 class Utils {
 public:
     static
@@ -90,7 +89,6 @@ public:
             graph[i] = new int[n];
         }
 
-        // Fill graph
         auto graph_data = data["graph"].get<std::vector<std::vector<int>>>();
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < n; ++j) {

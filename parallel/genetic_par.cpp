@@ -181,7 +181,6 @@ void evolve_population(vec_vec_int& old_gen) {
     populate(new_gen);
     mutate(new_gen, stop_vertices_check);
 
-    // Sort by fitness and keep best individuals
     std::vector<std::pair<int, vec_int>> scored(new_gen.size());
     #pragma omp parallel for
     for (int i = 0; i < new_gen.size(); ++i)

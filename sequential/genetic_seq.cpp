@@ -230,4 +230,3 @@ int main(int argc, char** argv) {
     std::cout << fitness(population[0]) << '\n';
     return 0;
 }
-

@@ -35,7 +35,7 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
         }
         vec_int stop_vertices = all_stop_vertices;
         stop_vertices.erase(stop_vertices.begin() + end_vertex);
-        // ETAP I
+        
         for (int j = 0; j < n - s; ++j) {
             int min_w = INT_MAX;
             int v_from = -1, v_to = -1;
@@ -61,7 +61,7 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
         if (skip) {
             continue;
         }
-        // ETAP II
+        
         to_use[all_stop_vertices[end_vertex]] = 1;
         int max_path_len = 0;
         for (int k = 0; k < s - 2; ++k) {

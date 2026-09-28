@@ -7,8 +7,6 @@
 
 using namespace std;
 
-// ./sgnp  n p s folder_name parameter_to_test min_value max_value step num_instances
-
 int main(int argc, char *argv[]) {
     int n = 5;
     float p = 50;
@@ -21,11 +19,11 @@ int main(int argc, char *argv[]) {
     int num_instances = 1;
 
     if (argc > 1) n = stoi(argv[1]);
-    if (argc > 2) p = stof(argv[2]); // prawdopodobieństwo krawiędzi (0-100)
-    if (argc > 3) s = stof(argv[3]); // procent wierzchołków postojowych (0-100), przy czym minimum będzie 2 wierzchołki
+    if (argc > 2) p = stof(argv[2]); 
+    if (argc > 3) s = stof(argv[3]); 
     if (argc > 4) foldername = argv[4];
     if (argc > 5) parameter_to_test = argv[5];
-    if (argc > 6) min_value = stoi(argv[6]); // dla p musi być podane jak procent
+    if (argc > 6) min_value = stoi(argv[6]); 
     if (argc > 7) max_value = stoi(argv[7]);
     if (argc > 8) step = stoi(argv[8]);
     if (argc > 9) num_instances = stoi(argv[9]);

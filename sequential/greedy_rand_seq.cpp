@@ -55,7 +55,7 @@ int solve(int n, int s, vec_vec_int &graph, vec_int all_stop_vertices) {
         }
         vec_int stop_vertices = all_stop_vertices;
         stop_vertices.erase(stop_vertices.begin() + i_left);
-        // ETAP I
+        
         for(int k = 0; k < n - s; ++k) {
             int min_w = INT_MAX;
             int v_from =  -1, v_to = -1;
@@ -80,7 +80,7 @@ int solve(int n, int s, vec_vec_int &graph, vec_int all_stop_vertices) {
         if(skip) {
             continue;
         }
-        // ETAP II
+        
         to_use[all_stop_vertices[i_left]] = 1;
         int max_path_len = 0;
         for(int k = 0; k < s - 2; ++k) {
