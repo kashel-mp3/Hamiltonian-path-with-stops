@@ -87,12 +87,19 @@ void mutate(vec_vec_int& population, const vec_bool& stop_vertices_check) {
     for (int i = 0; i < population.size(); ++i) {
         std::mt19937 gen(std::random_device{}() + omp_get_thread_num());
         std::uniform_real_distribution<double> dis(0.0, 1.0);
-        double prob = 1.0 - (double)fitness_vals[i] / total_fitness;
+        
+        double prob = (total_fitness > 0) ? (1.0 - (double)fitness_vals[i] / total_fitness) : 0.5;
+        
         if (dis(gen) <= prob) {
             vec_int& ind = population[i];
             std::uniform_int_distribution<int> dist(0, ind.size() - 1);
             int idx1 = dist(gen), idx2 = dist(gen);
+            
             std::swap(ind[idx1], ind[idx2]);
+            
+            if (!is_valid_solution(ind)) {
+                std::swap(ind[idx1], ind[idx2]);
+            }
         }
     }
 }
