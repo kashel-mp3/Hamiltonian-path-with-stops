@@ -186,6 +186,7 @@ __global__ void solve_kernel_cooperative_pruning(
 
 int main(int argc, char **argv)
 {
+  cudaFree(0);
   if (argc < 2)
   {
     std::cerr << "Usage: " << argv[0] << " <path_to_json_data_file> [num_cuda_threads_per_block (optional, default 256)]" << std::endl;
@@ -262,8 +263,6 @@ int main(int argc, char **argv)
     return 0;
   }
 
-  auto chrono_solve_start = std::chrono::high_resolution_clock::now();
-
   int *d_graph_flat;
   bool *d_stop_vertices_check_gpu;
   int *d_min_max_l_shared_for_pruning;
@@ -275,6 +274,8 @@ int main(int argc, char **argv)
   CUDA_CHECK(cudaMalloc((void **)&d_min_max_l_shared_for_pruning, sizeof(int)));
   CUDA_CHECK(cudaMalloc((void **)&d_all_threads_min_max_l, n * sizeof(int)));
   CUDA_CHECK(cudaMalloc((void **)&d_all_threads_paths, n * n * sizeof(int)));
+
+  auto chrono_solve_start = std::chrono::high_resolution_clock::now();
 
   CUDA_CHECK(cudaMemcpy(d_graph_flat, h_graph_flat, n * n * sizeof(int), cudaMemcpyHostToDevice));
   CUDA_CHECK(cudaMemcpy(d_stop_vertices_check_gpu, h_stop_vertices_check, n * sizeof(bool), cudaMemcpyHostToDevice));
