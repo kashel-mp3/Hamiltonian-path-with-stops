@@ -2,143 +2,241 @@ import os
 import json
 import subprocess
 import time
+import csv
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import numpy as np
 import uuid
 
-timeout = 0.5
+timeout = 600.0  # Seconds before exact_seq gets killed
+log_file = "benchmark_progress.log"
+csv_file = "benchmark_results.csv"
+
+def log_progress(message):
+    """Appends a timestamped message to the log file."""
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(message + "\n")
 
 def run_tests(program_path, test_case):
     try:
         start_time = time.time()
         result = subprocess.run([program_path, test_case], encoding='utf-8', capture_output=True, check=True, timeout=timeout)
         end_time = time.time()
+        
         lines = result.stdout.strip().split()
-        solution_value = int(lines[-1])
-        return solution_value, end_time - start_time
-    except subprocess.TimeoutExpired as e:
+        if len(lines) == 0:
+            return 0, end_time - start_time
+            
+        # Catch C++ specific error outputs (-1 or -2)
+        if lines[0] in ['-1', '-2', '0']:
+            return 0, end_time - start_time
+
+        # Fast heuristics output: <path> <solution_value> <time_in_microseconds>
+        if 'greedy' in program_path or 'genetic' in program_path:
+            if len(lines) >= 2:
+                time_in_sec = float(lines[-1]) / 1_000_000.0
+                solution_value = int(lines[-2])
+                return solution_value, time_in_sec
+            return 0, 0
+            
+        # CUDA output: <path> <solution_value> <kernel_ms> <host_ms>
+        elif 'cuda' in program_path:
+            time_in_sec = float(lines[-1]) / 1000.0 
+            solution_value = int(lines[-3])
+            return solution_value, time_in_sec
+            
+        # Exact CPU output: <path> <solution_value>
+        else:
+            solution_value = int(lines[-1])
+            return solution_value, end_time - start_time
+            
+    except subprocess.TimeoutExpired:
         return 0, timeout
     except Exception as e:
-        print(f"some error with {program_path} {test_case}: {e}")
-        exit(1)
+        log_progress(f"ERROR executing {program_path} on {test_case}: {e}")
+        return 0, 0
 
 def run_program(program_paths, test_folder):
-    outputs = list()
-    times = list()
-    test_desc = list()
-    test_cases = os.listdir(test_folder)
-    test_cases.sort()
+    outputs = []
+    times = []
+    test_desc = []
+    
+    # Safely load and properly sort instances mathematically by n
+    test_cases = [tc for tc in os.listdir(test_folder) if tc.endswith('.json')]
+    test_cases.sort(key=lambda x: int(x.split('_n_')[1].split('_')[0]))
+
+    log_progress("Loading JSON descriptions...")
+    for test_case_file in test_cases:
+        with open(os.path.join(test_folder, test_case_file), 'r') as file:
+            test_desc.append(json.load(file))
+
+    # Initialize CSV file with headers
+    with open(csv_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Program", "Test_Case", "Vertices_N", "Stops_S", "Solution_Value", "Execution_Time_s"])
+
     for program_path in program_paths:
         outputs.append([])
         times.append([])
-        for test_case_file in test_cases:
-            with open((test_folder + '/' + test_case_file), 'r') as file:
-                data = json.load(file)
-                test_desc.append(data)
-            test_path = test_folder + '/' + test_case_file
-            output, execution_time = run_tests(program_path, test_path) 
+        consecutive_timeouts = 0  
+        
+        log_progress(f"\n--- Starting benchmark for {program_path} ---")
+        
+        for i, test_case_file in enumerate(test_cases):
+            test_path = os.path.join(test_folder, test_case_file)
+            n_val = test_desc[i]["number of vertices"]
+            s_val = test_desc[i]["number of stop vertices"]
+            
+            # Safeguard: Skip larger instances if the previous 2 timed out
+            if consecutive_timeouts >= 2:
+                log_progress(f"SKIPPED: {test_case_file} (due to previous timeouts)")
+                outputs[-1].append(0)
+                times[-1].append(timeout)
+                
+                # Immediately log skipped run to CSV
+                with open(csv_file, "a", newline="", encoding="utf-8") as f:
+                    csv.writer(f).writerow([program_path, test_case_file, n_val, s_val, 0, timeout])
+                continue
+                
+            log_progress(f"RUNNING: {test_case_file}...")
+            output, execution_time = run_tests(program_path, test_path)
+            
+            if execution_time >= timeout:
+                log_progress(f"TIMEOUT: {test_case_file} exceeded {timeout}s.")
+                consecutive_timeouts += 1
+            else:
+                log_progress(f"SUCCESS: {test_case_file} finished in {execution_time:.4f}s.")
+                consecutive_timeouts = 0
+                
             outputs[-1].append(output)
             times[-1].append(execution_time)
+            
+            # IMMEDIATELY log successful/timeout run to CSV
+            with open(csv_file, "a", newline="", encoding="utf-8") as f:
+                csv.writer(f).writerow([program_path, test_case_file, n_val, s_val, output, execution_time])
+            
     return outputs, times, test_desc
 
-test_folder = "./tests/a_few"
-program_paths = ["./exact", "./greedy", "./genetic"]
-number_of_tests = len(os.listdir(test_folder))
-
-outputs, times, descriptions = run_program(program_paths, test_folder)
-
-vertices_cnt = defaultdict(int)
-solvable_cnt = defaultdict(int)
-time_exact_vertices = defaultdict(int)
-time_exact_s_to_n = defaultdict(int)
-time_exact_density = defaultdict(int)
-time_greedy_vertices = defaultdict(int)
-time_genetic_vertices = defaultdict(int)
-acc_greedy_vertices = defaultdict(int)
-acc_genetic_vertices = defaultdict(int)
-
-for i in range(number_of_tests - 1):
-    vertices_cnt[int(descriptions[i]["number of vertices"])] += 1
-
-    time_exact_vertices[int(descriptions[i]["number of vertices"])] += times[0][i]
-    time_exact_s_to_n[float(descriptions[i]["number of stop vertices"]) / float(descriptions[i]["number of vertices"])] += times[0][i]
-    #time_exact_density[max(float(descriptions[i]["maximum out degree"]),float(descriptions[i]["maximum in degree"])) / (float(int(descriptions[i]["number of vertices"]) - 1))] += times[0][i]
-
-    time_greedy_vertices[int(descriptions[i]["number of vertices"])] += times[1][i]
-    time_genetic_vertices[int(descriptions[i]["number of vertices"])] += times[2][i]
-
-    if outputs[0][i]:
-        solvable_cnt[int(descriptions[i]["number of vertices"])] += 1
-        if(outputs[1][i] == 0 or (outputs[1][i] == -1 and outputs[0][i] != -1)):
-            acc_greedy = 0
+def compute_stats(data_dict):
+    """Calculates Medians and Interquartile Ranges (IQR) for error bars"""
+    x = sorted(data_dict.keys())
+    y_median = []
+    y_err_lower = []
+    y_err_upper = []
+    
+    for k in x:
+        data = data_dict[k]
+        if len(data) == 0:
+            continue
+        median = np.median(data)
+        if len(data) > 1:
+            q1, q3 = np.percentile(data, [25, 75])
+            y_err_lower.append(median - q1)
+            y_err_upper.append(q3 - median)
         else:
-            acc_greedy = float(1) - ((float(outputs[0][i]) - float(outputs[1][i])) / float(outputs[0][i]))
-        if(outputs[2][i] == 0 or (outputs[2][i] == -1 and outputs[0][i] != -1)):
-            acc_genetic = 0
-        else:
-            acc_genetic = float(1) - ((float(outputs[0][i]) - float(outputs[2][i])) / float(outputs[0][i]))
-        acc_greedy_vertices[int(descriptions[i]["number of vertices"])] += acc_greedy 
-        acc_genetic_vertices[int(descriptions[i]["number of vertices"])] += acc_genetic
+            y_err_lower.append(0)
+            y_err_upper.append(0)
+        y_median.append(median)
         
-for k, n, t in zip(vertices_cnt.keys(), vertices_cnt.values(), time_exact_vertices.values()):
-    time_exact_vertices[k] = float(t / n)
+    return x, y_median, [y_err_lower, y_err_upper]
 
-for k, n, t in zip(vertices_cnt.keys(), vertices_cnt.values(), time_greedy_vertices.values()):
-    time_greedy_vertices[k] = float(t / n)
+if __name__ == "__main__":
+    # Clear out the old log file for a fresh run
+    with open(log_file, "w", encoding="utf-8") as f:
+        f.write("=== BENCHMARK RUN LOG ===\n")
+        
+    test_folder = "./tests/a_few"
+    if not os.path.exists(test_folder):
+        print(f"Directory {test_folder} not found. Please generate tests first.")
+        exit(0)
+        
+    potential_programs = [
+        # --- Baseline Exact (Must be first for accuracy calculations) ---
+        #"build/bin/Release/exact_seq.exe", 
+        
+        # --- Sequential Heuristics ---
+        #"build/bin/Release/greedy_seq.exe", 
+        #"build/bin/Release/genetic_seq.exe",
+        
+        # --- OpenMP Parallel Solvers ---
+        #"build/bin/Release/exact_par.exe",
+        #"build/bin/Release/greedy_par.exe",
+        "build/bin/Release/genetic_par.exe",
+        
+        # --- CUDA GPU Solvers ---
+        #"build/bin/Release/exact_cuda_v.exe",
+        #"build/bin/Release/exact_cuda_e.exe"
+    ]
+    
+    program_paths = []
+    for p in potential_programs:
+        if os.path.exists(p):
+            program_paths.append(p)
+        else:
+            log_progress(f"WARNING: Executable not found at {p}")
+            
+    if not program_paths:
+        print("No valid executables found. Check your paths!")
+        exit(0)
 
-for k, n, t in zip(vertices_cnt.keys(), vertices_cnt.values(), time_genetic_vertices.values()):
-    time_genetic_vertices[k] = float(t / n)
-
-for k, n, a in zip(solvable_cnt.keys(), solvable_cnt.values(), acc_greedy_vertices.values()):
-    acc_greedy_vertices[k] = float(a / n)
-
-for k, n, a in zip(solvable_cnt.keys(), solvable_cnt.values(), acc_genetic_vertices.values()):
-    acc_genetic_vertices[k] = float(a / n)
-
-time_exact_vertices = {key: time_exact_vertices[key] for key in sorted(time_exact_vertices)}
-time_greedy_vertices = {key: time_greedy_vertices[key] for key in sorted(time_greedy_vertices)}
-time_genetic_vertices = {key: time_genetic_vertices[key] for key in sorted(time_genetic_vertices)}
-acc_greedy_vertices = {key: acc_greedy_vertices[key] for key in sorted(acc_greedy_vertices)}
-acc_genetic_vertices = {key: acc_genetic_vertices[key] for key in sorted(acc_genetic_vertices)}
-
-time_exact_vertices_x = list(time_exact_vertices.keys())
-time_exact_vertices_y = list(time_exact_vertices.values())
-
-time_greedy_vertices_x = list(time_greedy_vertices.keys())
-time_greedy_vertices_y = list(time_greedy_vertices.values())
-
-time_genetic_vertices_x = list(time_genetic_vertices.keys())
-time_genetic_vertices_y = list(time_genetic_vertices.values())
-
-acc_greedy_vertices_x = list(acc_greedy_vertices.keys())
-acc_greedy_vertices_y = list(acc_greedy_vertices.values())
-
-acc_genetic_vertices_x = list(acc_genetic_vertices.keys())
-acc_genetic_vertices_y = list(acc_genetic_vertices.values())
-
-# Create unique folder for plots
-unique_folder = f"plots/{uuid.uuid4()}"
-os.makedirs(unique_folder, exist_ok=True)
-
-# Plot and save time comparison
-plt.figure()
-plt.plot(time_exact_vertices_x, time_exact_vertices_y, label='exact')
-plt.plot(time_greedy_vertices_x, time_greedy_vertices_y, label='greedy')
-plt.plot(time_genetic_vertices_x, time_genetic_vertices_y, label='genetic')
-plt.title('t(|V|)')
-plt.xlabel('|V|')
-plt.ylabel('t[s]')
-plt.legend()
-plt.savefig(f"{unique_folder}/time_comparison.png")
-
-# Plot and save accuracy comparison
-plt.figure()
-plt.plot(acc_greedy_vertices_x, acc_greedy_vertices_y, label='greedy')
-plt.plot(acc_genetic_vertices_x, acc_genetic_vertices_y, label='genetic')
-plt.title('Solution Quality')
-plt.xlabel('|V|')
-plt.ylabel('Accuracy')
-plt.legend()
-plt.savefig(f"{unique_folder}/accuracy_comparison.png")
-
-print(f"Plots saved in folder: {unique_folder}")
+    # Run the benchmarks
+    outputs, times, descriptions = run_program(program_paths, test_folder)
+    
+    # Aggregate data by graph size (|V|)
+    time_data = [defaultdict(list) for _ in program_paths]
+    acc_data = [defaultdict(list) for _ in program_paths]
+    
+    log_progress("\nAggregating statistical results...")
+    
+    for i in range(len(descriptions)):
+        # FIX: Access the dictionary properly with [i]
+        v = int(descriptions[i]["number of vertices"])
+        
+        # Exact solution is the baseline (index 0)
+        exact_ans = outputs[0][i] if len(outputs) > 0 else 0
+        
+        for p_idx, program in enumerate(program_paths):
+            time_data[p_idx][v].append(times[p_idx][i])
+            
+            ans = outputs[p_idx][i]
+            if exact_ans > 0 and ans > 0:
+                acc = 1.0 - ((exact_ans - ans) / exact_ans)
+                acc_data[p_idx][v].append(acc)
+            else:
+                acc_data[p_idx][v].append(0)
+                
+    # Create unique output directory
+    unique_folder = f"plots/{uuid.uuid4()}"
+    os.makedirs(unique_folder, exist_ok=True)
+    
+    # Plot Execution Times
+    plt.figure()
+    for p_idx, program in enumerate(program_paths):
+        name = os.path.basename(program).replace('.exe', '')
+        x, y_med, y_err = compute_stats(time_data[p_idx])
+        plt.errorbar(x, y_med, yerr=y_err, label=name, fmt='-o', capsize=5)
+        
+    plt.title('Execution Time t(|V|) - Median with IQR')
+    plt.xlabel('|V| (Number of Vertices)')
+    plt.ylabel('Time [s]')
+    plt.legend()
+    plt.savefig(f"{unique_folder}/time_comparison.png")
+    
+    # Plot Solution Quality (Accuracy)
+    plt.figure()
+    for p_idx, program in enumerate(program_paths):
+        if 'exact' in program: 
+            continue # Exact is always the 100% baseline
+        name = os.path.basename(program).replace('.exe', '')
+        x, y_med, y_err = compute_stats(acc_data[p_idx])
+        plt.errorbar(x, y_med, yerr=y_err, label=name, fmt='-o', capsize=5)
+        
+    plt.title('Solution Quality - Median with IQR')
+    plt.xlabel('|V| (Number of Vertices)')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.savefig(f"{unique_folder}/accuracy_comparison.png")
+    
+    completion_msg = f"Plots successfully generated and saved in: {unique_folder}"
+    print(completion_msg)
+    log_progress(f"\n{completion_msg}")
