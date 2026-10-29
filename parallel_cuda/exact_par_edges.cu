@@ -91,6 +91,12 @@ __global__ void solve_kernel_decoupled_work(
   if (d_stop_vertices_check[second_node_val])
   {
     initial_used_s++;
+
+    if (initial_used_s > s || (initial_used_s == s && n > 2)) 
+    {
+        return;
+    }
+    
     initial_max_l = initial_cur_l;
     initial_cur_l = 0;
   }
