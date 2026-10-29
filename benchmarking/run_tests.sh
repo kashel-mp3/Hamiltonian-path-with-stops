@@ -11,6 +11,9 @@ OUTPUT_FILE="$3"
 
 > "$OUTPUT_FILE"
 
+export OMP_PROC_BIND=true
+export OMP_PLACES=cores
+
 for testcase in "$TEST_DIR"/*.json; do
     filename=$(basename "$testcase")
     output=$("$PROGRAM" "$testcase")
