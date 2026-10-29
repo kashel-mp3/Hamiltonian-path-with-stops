@@ -42,10 +42,14 @@ target_link_libraries(greedy_seq     PRIVATE utils)
 target_link_libraries(greedy_rand_seq PRIVATE utils)
 target_link_libraries(genetic_seq    PRIVATE utils)
 
-# ─── OpenMP targets (optional) ──────────────────────────────────────────────
+# ─── OpenMP targets ──────────────────────────────────────────────
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     message(STATUS "OpenMP found — building parallel targets")
+    if(MSVC)
+        set(my_cxx_flags "/openmp:llvm")
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${my_cxx_flags}>)
+    endif()
 
     add_executable(exact_par   parallel_omp/exact_par.cpp)
     add_executable(brute_par   parallel_omp/brute_par.cpp)
@@ -70,6 +74,7 @@ check_language(CUDA)
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
     set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_ARCHITECTURES 120)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     message(STATUS "CUDA found — building GPU targets")
 
