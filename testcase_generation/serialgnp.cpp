@@ -3,9 +3,14 @@
 #include <string>
 #include <cstdlib>
 #include <iomanip>
+#include <filesystem>
 #include <omp.h>
 
 using namespace std;
+
+#ifndef DEFAULT_GNP_EXE
+#define DEFAULT_GNP_EXE "gnp"
+#endif
 
 int main(int argc, char *argv[]) {
     int n = 5;
@@ -16,7 +21,9 @@ int main(int argc, char *argv[]) {
     int min_value = 1;
     int max_value = 10;
     int step = 1;
-    int num_instances = 1;
+    int num_instances = 30;
+
+    string gnp_exe = filesystem::path(DEFAULT_GNP_EXE).make_preferred().string();
 
     if (argc > 1) n = stoi(argv[1]);
     if (argc > 2) p = stof(argv[2]); 
@@ -27,6 +34,8 @@ int main(int argc, char *argv[]) {
     if (argc > 7) max_value = stoi(argv[7]);
     if (argc > 8) step = stoi(argv[8]);
     if (argc > 9) num_instances = stoi(argv[9]);
+    if (const char *env_exe = getenv("GNP_EXE")) gnp_exe = env_exe;
+    if (argc > 10) gnp_exe = argv[10];
 
     p = p / 100.0f;
     cout << p << '\n'; 
@@ -56,19 +65,26 @@ int main(int argc, char *argv[]) {
         for (int instance = 0; instance < num_instances; ++instance) {
             printf("n %d s %f p %f\n", current_n, current_s, current_p);
 
-            string filename = foldername + "/" + to_string(instance) + "_n_" + to_string(current_n) +
-                              "_p_" + to_string(static_cast<int>(current_p * 100)) +
-                              "_s_" + to_string((int)current_s) + ".json";
+            string filename = (filesystem::path(foldername) /
+                               (to_string(instance) + "_n_" + to_string(current_n) +
+                                "_p_" + to_string(static_cast<int>(current_p * 100)) +
+                                "_s_" + to_string((int)current_s) + ".json"))
+                                  .make_preferred()
+                                  .string();
 
-            string command = "./gnp " + to_string(current_n) + " " +
+            string command = "\"" + gnp_exe + "\" " + to_string(current_n) + " " +
                              to_string(current_p) + " " +
                              to_string(max_value) + " " + 
                              to_string(min_value) + " " +   
                              to_string(current_s) + " " +
-                             filename;
+                             "\"" + filename + "\"";
 
             cout << "Running: " << command << endl;
+#ifdef _WIN32
+            int ret_code = system(("\"" + command + "\"").c_str());
+#else
             int ret_code = system(command.c_str());
+#endif
             if (ret_code != 0) {
                 cerr << "Error: Command failed with return code " << ret_code << endl;
                 exit(ret_code);
