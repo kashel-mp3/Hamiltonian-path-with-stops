@@ -54,7 +54,12 @@ def main():
     min_num_cores = int(sys.argv[3])
     max_num_cores = int(sys.argv[4])
 
-    report_file = os.path.basename(program_path) + "_raport.csv"
+    results_dir = "results"
+    os.makedirs(results_dir, exist_ok=True)
+    run_id = time.strftime("%Y%m%d_%H%M%S")
+    report_file = os.path.join(
+        results_dir, f"{os.path.basename(program_path)}_{run_id}_raport.csv"
+    )
     
     test_cases = [
         test_case for test_case in os.listdir(test_cases_folder) if test_case.endswith('.json')

@@ -32,6 +32,8 @@ The benchmarking suite is driven by an automated Python pipeline (`tests_runner.
 *   **Aggregation:** To account for the heavy variance inherent to NP-Hard instances, **30 independent random graphs** were evaluated for each $N$. Results display the **Statistical Median**.
 *   **Timeouts & Bounds:** A strict 600.0-second timeout was enforced. For runs that timed out, execution time is denoted as `>600.0`. These timeouts are used to calculate strict **lower-bound approximations** for parallel speedup (e.g., if sequential times out at 600s and parallel finishes in 24s, the speedup is strictly $> 25\times$).
 *   **Accuracy Baseline:** `exact_cuda_e` was used as the ground-truth optimal baseline to calculate heuristic accuracy up to $N=16$.
+*   **Data:** The tables below were generated from `benchmark_results_20260929_120837.csv`.
+*   **Artifacts:** Each run writes its own timestamped files to `results/` (`benchmark_results_<YYYYmmdd_HHMMSS>.csv`) and `logs/` (`benchmark_progress_<YYYYmmdd_HHMMSS>.log`), earlier runs are never overwritten.
 
 ## Results
 

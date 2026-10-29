@@ -9,8 +9,26 @@ import numpy as np
 import uuid
 
 timeout = 600.0  # Seconds before exact_seq gets killed
-log_file = "benchmark_progress.log"
-csv_file = "benchmark_results.csv"
+
+RESULTS_DIR = "results"
+LOGS_DIR = "logs"
+RUN_ID = time.strftime("%Y%m%d_%H%M%S")
+
+def unique_path(path):
+    """Appends _1, _2, ... rather than overwriting an artifact from an earlier run."""
+    if not os.path.exists(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    index = 1
+    while os.path.exists(f"{stem}_{index}{ext}"):
+        index += 1
+    return f"{stem}_{index}{ext}"
+
+os.makedirs(RESULTS_DIR, exist_ok=True)
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+log_file = unique_path(os.path.join(LOGS_DIR, f"benchmark_progress_{RUN_ID}.log"))
+csv_file = unique_path(os.path.join(RESULTS_DIR, f"benchmark_results_{RUN_ID}.csv"))
 
 def log_progress(message):
     """Appends a timestamped message to the log file."""
@@ -237,6 +255,10 @@ if __name__ == "__main__":
     plt.legend()
     plt.savefig(f"{unique_folder}/accuracy_comparison.png")
     
-    completion_msg = f"Plots successfully generated and saved in: {unique_folder}"
+    completion_msg = (
+        f"Plots successfully generated and saved in: {unique_folder}\n"
+        f"Raw results: {csv_file}\n"
+        f"Progress log: {log_file}"
+    )
     print(completion_msg)
     log_progress(f"\n{completion_msg}")
