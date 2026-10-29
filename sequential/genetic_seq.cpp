@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <fstream>
 #include <climits>
+#include <chrono>
 
 using json = nlohmann::json;
 
@@ -216,17 +217,28 @@ int main(int argc, char** argv) {
         std::cout << -2 << '\n';
         return 0;
     }
-    vec_vec_int population;
     stop_vertices_check = vec_bool(n, 0);
     for(auto &v : stop_vertices) {
         stop_vertices_check[v] = 1;
     }
-    populate(population);
-    for(int i = 0; i < number_of_generations; ++i) {
-        evolve_population(population);
+
+    vec_vec_int best_population;
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int iter = 0; iter < 1000; ++iter) {
+        vec_vec_int population;
+        populate(population);
+        for(int i = 0; i < number_of_generations; ++i) {
+            evolve_population(population);
+        }
+        if (iter == 0) best_population = population;
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    double avg_micro = (double)duration / 1000.0;
+
     for(int i = 0; i < n; ++i)
-        std::cout << population[0][i] << ' ';
-    std::cout << fitness(population[0]) << '\n';
+        std::cout << best_population[0][i] << ' ';
+    std::cout << fitness(best_population[0]) << '\n';
+    std::cout << avg_micro << '\n';
     return 0;
 }

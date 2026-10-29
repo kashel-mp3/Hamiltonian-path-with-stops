@@ -7,6 +7,7 @@
 #include <fstream>
 #include <algorithm>
 #include <climits>
+#include <chrono>
 
 using json = nlohmann::json;
 
@@ -120,18 +121,29 @@ int main(int argc, char** argv) {
         std::string filename = argv[i];
         utils.read_data_from_json(filename, n, s, graph, stop_vertices);
         if(!utils.is_connected(n, graph)) {
-            std::cout << "No solution for dataset '" << filename << "' : graph is not connected\n";
+            std::cout << "0\n0\n";
             continue;
         }
-        PathWithMaxLength path_with_max_len = solve(n, s, graph, stop_vertices);
+        
+        PathWithMaxLength path_with_max_len;
+        
+        auto start = std::chrono::high_resolution_clock::now();
+        for (int iter = 0; iter < 1000; ++iter) {
+            path_with_max_len = solve(n, s, graph, stop_vertices);
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        double avg_micro = (double)duration / 1000.0;
+
         if(!path_with_max_len.path.size()) {
-            std::cout << "No feasible solution for dataset '" << filename << "' found\n";
+            std::cout << "0\n0\n";
             continue;
         } 
         for (int i = 0; i < path_with_max_len.path.size(); ++i) {
             std::cout << path_with_max_len.path[i] << ' ';
         }
         std::cout << path_with_max_len.max_length << '\n';
+        std::cout << avg_micro << '\n';
     }
     return 0;
 }

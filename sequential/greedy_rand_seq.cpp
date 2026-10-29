@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <random>
 #include <climits>
+#include <chrono>
 
 using json = nlohmann::json;
 
@@ -29,8 +30,19 @@ int main(int argc, char** argv) {
     std::vector<std::vector<int>> graph;
     std::string filename = argv[1];
     utils.read_data_from_json(filename, n, s, graph, stop_vertices);
-    std::cout << solve(n, s, graph, stop_vertices) << '\n';
-    return(0);
+    
+    int result = -1;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int iter = 0; iter < 1000; ++iter) {
+        result = solve(n, s, graph, stop_vertices);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    double avg_micro = (double)duration / 1000.0;
+
+    std::cout << result << '\n';
+    std::cout << avg_micro << '\n';
+    return 0;
 }
 
 int solve(int n, int s, vec_vec_int &graph, vec_int all_stop_vertices) {

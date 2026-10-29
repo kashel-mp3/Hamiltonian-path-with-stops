@@ -7,6 +7,7 @@
 #include <fstream>
 #include <climits>
 #include <omp.h>
+#include <chrono>
 
 using json = nlohmann::json;
 
@@ -233,19 +234,24 @@ int main(int argc, char** argv) {
     for (int v : stop_vertices)
         stop_vertices_check[v] = true;
 
-    vec_vec_int population;
-    populate(population);
-
-    for (int gen = 0; gen < number_of_generations; ++gen) {
-        std::cout << "Generation " << gen + 1 << ":\n";
-        evolve_population(population);
-        for (const auto& ind : population)
-            std::cout << "Fitness: " << fitness(ind) << '\n';
+    vec_vec_int best_population;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int iter = 0; iter < 1000; ++iter) {
+        vec_vec_int population;
+        populate(population);
+        for (int gen = 0; gen < number_of_generations; ++gen) {
+            evolve_population(population);
+        }
+        if (iter == 0) best_population = population;
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    double avg_micro = (double)duration / 1000.0;
 
     for (int i = 0; i < n; ++i)
-        std::cout << population[0][i] << ' ';
-    std::cout << "Fitness: " << fitness(population[0]) << '\n';
+        std::cout << best_population[0][i] << ' ';
+    std::cout << fitness(best_population[0]) << '\n';
+    std::cout << avg_micro << '\n';
 
     return 0;
 }
