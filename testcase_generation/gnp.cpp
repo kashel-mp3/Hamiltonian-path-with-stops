@@ -1,30 +1,30 @@
-#include <iostream>
-#include <cstdlib>
-#include <string>
-#include <random>
-#include <vector>
-#include <fstream>
 #include <algorithm>
-#include <iomanip>
+#include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <random>
+#include <string>
+#include <vector>
 
 using namespace std;
 using json = nlohmann::json;
 
-int ** AllocateA(int n) {
-    int ** A = new int*[n];
-    for (int i=0; i<n; i++) A[i] = new int[n];
+int** AllocateA(int n) {
+    int** A = new int*[n];
+    for (int i = 0; i < n; i++) A[i] = new int[n];
     return A;
 }
 
-void FreeA(int n, int *** A) {
-    for (int i=0; i<n; i++) delete[] (*A)[i];
-    delete [] (*A);
+void FreeA(int n, int*** A) {
+    for (int i = 0; i < n; i++) delete[] (*A)[i];
+    delete[] (*A);
     *A = NULL;
 }
 
-void gnp(int n, float p, int min_v, int max_v, int **A, std::mt19937 &rng) {
+void gnp(int n, float p, int min_v, int max_v, int** A, std::mt19937& rng) {
     std::uniform_real_distribution<float> dist(0.0f, 1.0f);
     std::uniform_int_distribution<> dist_range(min_v, max_v);
 
@@ -40,7 +40,7 @@ void gnp(int n, float p, int min_v, int max_v, int **A, std::mt19937 &rng) {
     }
 }
 
-vector<int> generate_random_subset(int n, int s, std::mt19937 &rng) {
+vector<int> generate_random_subset(int n, int s, std::mt19937& rng) {
     vector<int> sub(n);
     for (int i = 0; i < n; ++i) sub[i] = i;
     shuffle(sub.begin(), sub.end(), rng);
@@ -48,7 +48,8 @@ vector<int> generate_random_subset(int n, int s, std::mt19937 &rng) {
     return sub;
 }
 
-void write_data_to_json(const string &filename, int n, float p, int s, vector<vector<int>> graph, vector<int> stop_vertices) {
+void write_data_to_json(const string& filename, int n, float p, int s, vector<vector<int>> graph,
+                        vector<int> stop_vertices) {
     std::filesystem::path file_path(filename);
     std::filesystem::create_directories(file_path.parent_path());
 
@@ -70,7 +71,7 @@ void write_data_to_json(const string &filename, int n, float p, int s, vector<ve
     file.close();
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     int n = 5;
     float p = 0.5;
     int max_v = 100;
@@ -95,13 +96,12 @@ int main(int argc, char *argv[]) {
 
     clog << "{n:" << n << ", p:" << p << ", min_v:" << min_v << ", max_v:" << max_v << ", s:" << s << "}" << endl;
 
-    int **A = AllocateA(n);
+    int** A = AllocateA(n);
     gnp(n, p, min_v, max_v, A, rng);
 
     vector<vector<int>> graph(n, vector<int>(n));
     for (int i = 0; i < n; i++)
-        for (int j = 0; j < n; j++)
-            graph[i][j] = A[i][j];
+        for (int j = 0; j < n; j++) graph[i][j] = A[i][j];
 
     vector<int> stop_vertices = generate_random_subset(n, s, rng);
 

@@ -1,13 +1,15 @@
-#include <nlohmann/json.hpp>
-#include "../utils.h"
-#include <iostream>
-#include <vector>
-#include <random>
-#include <algorithm>
-#include <fstream>
-#include <climits>
 #include <omp.h>
+
+#include <algorithm>
 #include <chrono>
+#include <climits>
+#include <fstream>
+#include <iostream>
+#include <nlohmann/json.hpp>
+#include <random>
+#include <vector>
+
+#include "../utils.h"
 
 using json = nlohmann::json;
 
@@ -22,20 +24,18 @@ vec_bool stop_vertices_check;
 vec_vec_int graph;
 std::ofstream res("genetic.txt");
 
-bool is_valid_solution(const vec_int& solution){
-    if(!stop_vertices_check[solution[0]] || !stop_vertices_check[solution.back()])
-        return false;
-    for(int i = 1; i < solution.size(); ++i)
-        if(!graph[solution[i - 1]][solution[i]])
-            return false;
+bool is_valid_solution(const vec_int& solution) {
+    if (!stop_vertices_check[solution[0]] || !stop_vertices_check[solution.back()]) return false;
+    for (int i = 1; i < solution.size(); ++i)
+        if (!graph[solution[i - 1]][solution[i]]) return false;
     return true;
 }
 
 int fitness(const vec_int& solution) {
     int max_subpath = 0, cur_subpath = 0;
-    for(int i = 1; i < n; ++i) {
+    for (int i = 1; i < n; ++i) {
         cur_subpath += graph[solution[i - 1]][solution[i]];
-        if(stop_vertices_check[solution[i]]) {
+        if (stop_vertices_check[solution[i]]) {
             max_subpath = std::max(max_subpath, cur_subpath);
             cur_subpath = 0;
         }
@@ -48,13 +48,13 @@ void populate(vec_vec_int& population) {
     vec_int base_permutation(n);
     for (int i = 0; i < n; ++i) base_permutation[i] = i;
 
-    #pragma omp parallel
+#pragma omp parallel
     {
         std::random_device rd;
         std::mt19937 rng(rd() + omp_get_thread_num());
         std::vector<vec_int> local_pop;
 
-        #pragma omp for
+#pragma omp for
         for (int i = 0; i < new_solutions; ++i) {
             vec_int perm;
             int attempts = 0;
@@ -69,7 +69,7 @@ void populate(vec_vec_int& population) {
             }
         }
 
-        #pragma omp critical
+#pragma omp critical
         population.insert(population.end(), local_pop.begin(), local_pop.end());
     }
 }
@@ -78,26 +78,26 @@ void mutate(vec_vec_int& population, const vec_bool& stop_vertices_check) {
     std::vector<int> fitness_vals(population.size());
     double total_fitness = 0.0;
 
-    #pragma omp parallel for reduction(+:total_fitness)
+#pragma omp parallel for reduction(+ : total_fitness)
     for (int i = 0; i < population.size(); ++i) {
         fitness_vals[i] = fitness(population[i]);
         total_fitness += fitness_vals[i];
     }
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < population.size(); ++i) {
         std::mt19937 gen(std::random_device{}() + omp_get_thread_num());
         std::uniform_real_distribution<double> dis(0.0, 1.0);
-        
+
         double prob = (total_fitness > 0) ? (1.0 - (double)fitness_vals[i] / total_fitness) : 0.5;
-        
+
         if (dis(gen) <= prob) {
             vec_int& ind = population[i];
             std::uniform_int_distribution<int> dist(0, ind.size() - 1);
             int idx1 = dist(gen), idx2 = dist(gen);
-            
+
             std::swap(ind[idx1], ind[idx2]);
-            
+
             if (!is_valid_solution(ind)) {
                 std::swap(ind[idx1], ind[idx2]);
             }
@@ -113,8 +113,7 @@ vec_int crossover(const vec_int& A, const vec_int& B) {
         used[A[i]] = true;
     }
     for (int i = 0; i < n; ++i)
-        if (!used[B[i]])
-            child.push_back(B[i]);
+        if (!used[B[i]]) child.push_back(B[i]);
     return child;
 }
 
@@ -122,25 +121,20 @@ vec_vec_int rank_based_selection(const vec_vec_int& population) {
     vec_vec_int sorted = population;
     std::vector<int> fit_vals(population.size());
 
-    #pragma omp parallel for
-    for (int i = 0; i < population.size(); ++i)
-        fit_vals[i] = fitness(population[i]);
+#pragma omp parallel for
+    for (int i = 0; i < population.size(); ++i) fit_vals[i] = fitness(population[i]);
 
     std::vector<size_t> indices(population.size());
     std::iota(indices.begin(), indices.end(), 0);
-    std::sort(indices.begin(), indices.end(), [&](int a, int b) {
-        return fit_vals[a] < fit_vals[b];
-    });
+    std::sort(indices.begin(), indices.end(), [&](int a, int b) { return fit_vals[a] < fit_vals[b]; });
 
     double total_rank = (population_size * (population_size + 1)) / 2.0;
     std::vector<double> prob(population_size);
-    for (int i = 0; i < population_size; ++i)
-        prob[i] = (population_size - i) / total_rank;
+    for (int i = 0; i < population_size; ++i) prob[i] = (population_size - i) / total_rank;
 
     std::vector<double> cum_prob(population_size);
     cum_prob[0] = prob[0];
-    for (int i = 1; i < population_size; ++i)
-        cum_prob[i] = cum_prob[i - 1] + prob[i];
+    for (int i = 1; i < population_size; ++i) cum_prob[i] = cum_prob[i - 1] + prob[i];
 
     std::vector<vec_int> selected;
     std::mt19937 gen(std::random_device{}());
@@ -162,27 +156,21 @@ void evolve_population(vec_vec_int& old_gen) {
     vec_vec_int parents = rank_based_selection(old_gen);
     vec_vec_int new_gen(old_gen.begin(), old_gen.begin() + elite_size);
 
-    #pragma omp parallel
+#pragma omp parallel
     {
         std::vector<vec_int> local_offspring;
 
-        #pragma omp for nowait
+#pragma omp for nowait
         for (int i = 1; i < parents.size(); i += 2) {
             vec_int A = parents[i - 1], B = parents[i];
             vec_int Ar(A.rbegin(), A.rend()), Br(B.rbegin(), B.rend());
-            vec_vec_int children = {
-                crossover(A, B),
-                crossover(B, A),
-                crossover(Ar, B),
-                crossover(Br, A)
-            };
+            vec_vec_int children = {crossover(A, B), crossover(B, A), crossover(Ar, B), crossover(Br, A)};
             for (auto& child : children) {
-                if (is_valid_solution(child))
-                    local_offspring.push_back(child);
+                if (is_valid_solution(child)) local_offspring.push_back(child);
             }
         }
 
-        #pragma omp critical
+#pragma omp critical
         new_gen.insert(new_gen.end(), local_offspring.begin(), local_offspring.end());
     }
 
@@ -190,17 +178,13 @@ void evolve_population(vec_vec_int& old_gen) {
     mutate(new_gen, stop_vertices_check);
 
     std::vector<std::pair<int, vec_int>> scored(new_gen.size());
-    #pragma omp parallel for
-    for (int i = 0; i < new_gen.size(); ++i)
-        scored[i] = {fitness(new_gen[i]), new_gen[i]};
+#pragma omp parallel for
+    for (int i = 0; i < new_gen.size(); ++i) scored[i] = {fitness(new_gen[i]), new_gen[i]};
 
-    std::sort(scored.begin(), scored.end(), [](auto& a, auto& b) {
-        return a.first < b.first;
-    });
+    std::sort(scored.begin(), scored.end(), [](auto& a, auto& b) { return a.first < b.first; });
 
     old_gen.clear();
-    for (int i = 0; i < population_size; ++i)
-        old_gen.push_back(scored[i].second);
+    for (int i = 0; i < population_size; ++i) old_gen.push_back(scored[i].second);
 }
 
 bool is_connected(int n, vec_vec_int& g) {
@@ -208,8 +192,7 @@ bool is_connected(int n, vec_vec_int& g) {
     std::function<void(int)> dfs = [&](int v) {
         visited[v] = true;
         for (int i = 0; i < n; ++i)
-            if (g[v][i] && !visited[i])
-                dfs(i);
+            if (g[v][i] && !visited[i]) dfs(i);
     };
     dfs(0);
     return std::all_of(visited.begin(), visited.end(), [](bool v) { return v; });
@@ -231,8 +214,7 @@ int main(int argc, char** argv) {
     }
 
     stop_vertices_check = vec_bool(n, false);
-    for (int v : stop_vertices)
-        stop_vertices_check[v] = true;
+    for (int v : stop_vertices) stop_vertices_check[v] = true;
 
     vec_vec_int best_population;
     auto start = std::chrono::high_resolution_clock::now();
@@ -248,8 +230,7 @@ int main(int argc, char** argv) {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     double avg_micro = (double)duration / 1000.0;
 
-    for (int i = 0; i < n; ++i)
-        std::cout << best_population[0][i] << ' ';
+    for (int i = 0; i < n; ++i) std::cout << best_population[0][i] << ' ';
     std::cout << fitness(best_population[0]) << '\n';
     std::cout << avg_micro << '\n';
 

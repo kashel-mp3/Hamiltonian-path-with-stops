@@ -1,9 +1,9 @@
 #pragma once
-#include <iostream>
-#include <fstream>
 #include <filesystem>
-#include <vector>
+#include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -12,9 +12,9 @@ typedef std::vector<bool> vec_bool;
 typedef std::vector<std::vector<int>> vec_vec_int;
 
 class Utils {
-public:
-    static
-    void read_data_from_json(std::string &filename, int &n, int &s, std::vector<std::vector<int>> &graph, std::vector<int> &stop_vertices) {
+   public:
+    static void read_data_from_json(std::string& filename, int& n, int& s, std::vector<std::vector<int>>& graph,
+                                    std::vector<int>& stop_vertices) {
         std::ifstream file(filename);
         if (!file.is_open()) {
             std::cerr << "Unable to open file '" << filename << "'." << '\n';
@@ -32,9 +32,8 @@ public:
         stop_vertices = data["stop vertices"].get<std::vector<int>>();
         file.close();
     }
-    
-    static
-    void write_solution_to_json(std::string &solution_path, vec_int solution, int value) {
+
+    static void write_solution_to_json(std::string& solution_path, vec_int solution, int value) {
         std::ofstream file(solution_path);
         if (file.is_open()) {
             json data;
@@ -46,8 +45,8 @@ public:
             std::cerr << "Unable to open file '" << solution_path << "'." << '\n';
         }
     }
-    
-    bool is_connected(int n, vec_vec_int &graph) {
+
+    bool is_connected(int n, vec_vec_int& graph) {
         std::vector<bool> visited(n, 0);
         dfs(n, 0, graph, visited);
         for (bool visit : visited) {
@@ -57,7 +56,7 @@ public:
         }
         return 1;
     }
-    
+
     void dfs(int n, int v, vec_vec_int& graph, std::vector<bool>& visited) {
         visited[v] = true;
         for (int i = 0; i < n; ++i) {
@@ -67,8 +66,8 @@ public:
         }
     }
 
-    static
-    void read_data_from_json_to_arrays(std::string &filename, int &n, int &s, int **&graph, int *&stop_vertices) {
+    static void read_data_from_json_to_arrays(std::string& filename, int& n, int& s, int**& graph,
+                                              int*& stop_vertices) {
         std::ifstream file(filename);
         if (!file.is_open()) {
             std::cerr << "Unable to open file '" << filename << "'." << '\n';
@@ -106,8 +105,7 @@ public:
         file.close();
     }
 
-    static
-    void release_allocated_memory(int n, int **&graph, int *&stop_vertices) {
+    static void release_allocated_memory(int n, int**& graph, int*& stop_vertices) {
         if (graph != nullptr) {
             for (int i = 0; i < n; ++i) {
                 delete[] graph[i];
@@ -115,16 +113,15 @@ public:
             delete[] graph;
             graph = nullptr;
         }
-        
+
         if (stop_vertices != nullptr) {
             delete[] stop_vertices;
             stop_vertices = nullptr;
         }
     }
 
-    static
-    bool is_connected_arrays(int n, int **graph) {
-        bool *visited = new bool[n]();
+    static bool is_connected_arrays(int n, int** graph) {
+        bool* visited = new bool[n]();
         dfs_arrays(n, 0, graph, visited);
         for (int i = 0; i < n; ++i) {
             if (!visited[i]) {
@@ -136,8 +133,7 @@ public:
         return true;
     }
 
-    static
-    void dfs_arrays(int n, int v, int **graph, bool *visited) {
+    static void dfs_arrays(int n, int v, int** graph, bool* visited) {
         visited[v] = true;
         for (int i = 0; i < n; ++i) {
             if (graph[v][i] != 0 && !visited[i]) {
@@ -145,5 +141,4 @@ public:
             }
         }
     }
-
 };

@@ -1,10 +1,11 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <cstdlib>
-#include <iomanip>
-#include <filesystem>
 #include <omp.h>
+
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -12,7 +13,7 @@ using namespace std;
 #define DEFAULT_GNP_EXE "gnp"
 #endif
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     int n = 5;
     float p = 50;
     int s = 3;
@@ -26,21 +27,21 @@ int main(int argc, char *argv[]) {
     string gnp_exe = filesystem::path(DEFAULT_GNP_EXE).make_preferred().string();
 
     if (argc > 1) n = stoi(argv[1]);
-    if (argc > 2) p = stof(argv[2]); 
-    if (argc > 3) s = stof(argv[3]); 
+    if (argc > 2) p = stof(argv[2]);
+    if (argc > 3) s = stof(argv[3]);
     if (argc > 4) foldername = argv[4];
     if (argc > 5) parameter_to_test = argv[5];
-    if (argc > 6) min_value = stoi(argv[6]); 
+    if (argc > 6) min_value = stoi(argv[6]);
     if (argc > 7) max_value = stoi(argv[7]);
     if (argc > 8) step = stoi(argv[8]);
     if (argc > 9) num_instances = stoi(argv[9]);
-    if (const char *env_exe = getenv("GNP_EXE")) gnp_exe = env_exe;
+    if (const char* env_exe = getenv("GNP_EXE")) gnp_exe = env_exe;
     if (argc > 10) gnp_exe = argv[10];
 
     p = p / 100.0f;
-    cout << p << '\n'; 
+    cout << p << '\n';
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int value = min_value; value <= max_value; value += step) {
         int current_n = n;
         float current_p = p;
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]) {
         if (parameter_to_test == "n") {
             current_n = value;
         } else if (parameter_to_test == "p") {
-            current_p = static_cast<float>(value) / 100.0f; 
+            current_p = static_cast<float>(value) / 100.0f;
         } else if (parameter_to_test == "s") {
             current_s = value;
         } else {
@@ -65,18 +66,14 @@ int main(int argc, char *argv[]) {
         for (int instance = 0; instance < num_instances; ++instance) {
             printf("n %d s %f p %f\n", current_n, current_s, current_p);
 
-            string filename = (filesystem::path(foldername) /
-                               (to_string(instance) + "_n_" + to_string(current_n) +
-                                "_p_" + to_string(static_cast<int>(current_p * 100)) +
-                                "_s_" + to_string((int)current_s) + ".json"))
+            string filename = (filesystem::path(foldername) / (to_string(instance) + "_n_" + to_string(current_n) +
+                                                               "_p_" + to_string(static_cast<int>(current_p * 100)) +
+                                                               "_s_" + to_string((int)current_s) + ".json"))
                                   .make_preferred()
                                   .string();
 
-            string command = "\"" + gnp_exe + "\" " + to_string(current_n) + " " +
-                             to_string(current_p) + " " +
-                             to_string(max_value) + " " + 
-                             to_string(min_value) + " " +   
-                             to_string(current_s) + " " +
+            string command = "\"" + gnp_exe + "\" " + to_string(current_n) + " " + to_string(current_p) + " " +
+                             to_string(max_value) + " " + to_string(min_value) + " " + to_string(current_s) + " " +
                              "\"" + filename + "\"";
 
             cout << "Running: " << command << endl;

@@ -1,13 +1,14 @@
-#include <nlohmann/json.hpp>
-#include "../utils.h"
-#include <string>
-#include <iostream>
-#include <vector>
+#include <algorithm>
+#include <chrono>
+#include <climits>
 #include <cstdlib>
 #include <fstream>
-#include <algorithm>
-#include <climits>
-#include <chrono>
+#include <iostream>
+#include <nlohmann/json.hpp>
+#include <string>
+#include <vector>
+
+#include "../utils.h"
 
 using json = nlohmann::json;
 
@@ -21,7 +22,7 @@ struct subpath {
     int weight;
 };
 
-PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vertices) {
+PathWithMaxLength solve(int n, int s, vec_vec_int& graph, vec_int& all_stop_vertices) {
     for (int end_vertex = 0; end_vertex < s; ++end_vertex) {
         vec_vec_int local_graph = graph;
         std::vector<subpath> subpaths(n);
@@ -36,7 +37,7 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
         }
         vec_int stop_vertices = all_stop_vertices;
         stop_vertices.erase(stop_vertices.begin() + end_vertex);
-        
+
         for (int j = 0; j < n - s; ++j) {
             int min_w = INT_MAX;
             int v_from = -1, v_to = -1;
@@ -62,7 +63,7 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
         if (skip) {
             continue;
         }
-        
+
         to_use[all_stop_vertices[end_vertex]] = 1;
         int max_path_len = 0;
         for (int k = 0; k < s - 2; ++k) {
@@ -71,8 +72,8 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
             for (int i = 0; i < s - 2; ++i) {
                 for (int j = 0; j < s - 1; ++j) {
                     int cur_w = local_graph[stop_vertices[i]][stop_vertices[j]] + subpaths[stop_vertices[i]].weight;
-                    if (i != j && !to_use[stop_vertices[i]] && !to_use[stop_vertices[j]]
-                        && local_graph[stop_vertices[i]][stop_vertices[j]] && cur_w < min_w) {
+                    if (i != j && !to_use[stop_vertices[i]] && !to_use[stop_vertices[j]] &&
+                        local_graph[stop_vertices[i]][stop_vertices[j]] && cur_w < min_w) {
                         min_w = local_graph[stop_vertices[i]][stop_vertices[j]] + subpaths[stop_vertices[i]].weight;
                         v_from = stop_vertices[i];
                         v_to = stop_vertices[j];
@@ -83,7 +84,8 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
                 skip = 1;
                 break;
             }
-            subpaths[v_from].path.insert(subpaths[v_from].path.end(), subpaths[v_to].path.begin(), subpaths[v_to].path.end());
+            subpaths[v_from].path.insert(subpaths[v_from].path.end(), subpaths[v_to].path.begin(),
+                                         subpaths[v_to].path.end());
             subpaths[v_from].weight += local_graph[v_from][v_to];
             if (subpaths[v_from].weight > max_path_len) {
                 max_path_len = subpaths[v_from].weight;
@@ -102,10 +104,13 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
             }
         }
         if (local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]]) {
-            if (path.weight + local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]] > max_path_len) {
-                max_path_len = path.weight + local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]];
+            if (path.weight + local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]] >
+                max_path_len) {
+                max_path_len =
+                    path.weight + local_graph[path.path[path.path.size() - 1]][all_stop_vertices[end_vertex]];
             }
-        } else continue;
+        } else
+            continue;
         path.path.push_back(all_stop_vertices[end_vertex]);
         return {path.path, max_path_len};
     }
@@ -114,19 +119,19 @@ PathWithMaxLength solve(int n, int s, vec_vec_int &graph, vec_int &all_stop_vert
 
 int main(int argc, char** argv) {
     Utils utils = Utils();
-    for(int i = 1; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         int n, s;
         std::vector<int> stop_vertices;
         std::vector<std::vector<int>> graph;
         std::string filename = argv[i];
         utils.read_data_from_json(filename, n, s, graph, stop_vertices);
-        if(!utils.is_connected(n, graph)) {
+        if (!utils.is_connected(n, graph)) {
             std::cout << "0\n0\n";
             continue;
         }
-        
+
         PathWithMaxLength path_with_max_len;
-        
+
         auto start = std::chrono::high_resolution_clock::now();
         for (int iter = 0; iter < 1000; ++iter) {
             path_with_max_len = solve(n, s, graph, stop_vertices);
@@ -135,10 +140,10 @@ int main(int argc, char** argv) {
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         double avg_micro = (double)duration / 1000.0;
 
-        if(!path_with_max_len.path.size()) {
+        if (!path_with_max_len.path.size()) {
             std::cout << "0\n0\n";
             continue;
-        } 
+        }
         for (int i = 0; i < path_with_max_len.path.size(); ++i) {
             std::cout << path_with_max_len.path[i] << ' ';
         }

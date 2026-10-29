@@ -1,13 +1,14 @@
+#include <omp.h>
+
 #include <algorithm>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
+#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 #include <vector>
-#include <cassert>
-#include <omp.h>
 
 #include "../utils.h"
 
@@ -46,7 +47,7 @@ void get_kth_permutation(unsigned int n, uint64_t k, const std::vector<uint64_t>
     }
 }
 
-bool is_hamiltonian(int n, int **graph, const int *permutation, const bool *stops) {
+bool is_hamiltonian(int n, int** graph, const int* permutation, const bool* stops) {
     if (!stops[permutation[0]] || !stops[permutation[n - 1]]) return false;
     for (int j = 0; j < n - 1; j++) {
         if (graph[permutation[j]][permutation[j + 1]] == 0) {
@@ -56,7 +57,7 @@ bool is_hamiltonian(int n, int **graph, const int *permutation, const bool *stop
     return true;
 }
 
-int max_subpath(int n, const int *path, int **graph, const bool *stops) {
+int max_subpath(int n, const int* path, int** graph, const bool* stops) {
     int current_subpath_sum = 0;
     int max_found = 0;
 
@@ -78,7 +79,7 @@ int max_subpath(int n, const int *path, int **graph, const bool *stops) {
     return max_found;
 }
 
-void find_min_max_path(Utils utils, int n, int **graph, bool *stops) {
+void find_min_max_path(Utils utils, int n, int** graph, bool* stops) {
     if (n <= 1) {
         std::cout << "Path requires at least 2 vertices.\n";
         return;
@@ -130,21 +131,19 @@ void find_min_max_path(Utils utils, int n, int **graph, bool *stops) {
     }
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
     Utils utils = Utils();
-    if (argc < 2)
-    {
+    if (argc < 2) {
         std::cerr << "path to data file not provided\n";
         return 1;
     }
     std::string test_data_path = argv[1];
     int n, s;
-    int *stop_vertices;
-    int **graph;
+    int* stop_vertices;
+    int** graph;
     utils.read_data_from_json_to_arrays(test_data_path, n, s, graph, stop_vertices);
 
-    bool *stop_vertices_check = new bool[n]();
+    bool* stop_vertices_check = new bool[n]();
     for (int i = 0; i < s; ++i) {
         stop_vertices_check[stop_vertices[i]] = true;
     }

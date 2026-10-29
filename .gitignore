@@ -12,3 +12,5 @@
 !/logs/.gitkeep
 /results/*
 !/results/.gitkeep
+
+.clang-format

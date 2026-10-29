@@ -1,12 +1,13 @@
-#include <nlohmann/json.hpp>
-#include "../utils.h"
-#include <iostream>
-#include <vector>
-#include <random>
 #include <algorithm>
-#include <fstream>
-#include <climits>
 #include <chrono>
+#include <climits>
+#include <fstream>
+#include <iostream>
+#include <nlohmann/json.hpp>
+#include <random>
+#include <vector>
+
+#include "../utils.h"
 
 using json = nlohmann::json;
 
@@ -20,13 +21,13 @@ vec_int stop_vertices;
 vec_bool stop_vertices_check;
 vec_vec_int graph;
 
-bool is_valid_solution(vec_int solution){
+bool is_valid_solution(vec_int solution) {
     int size = solution.size();
-    if(!stop_vertices_check[solution[0]] || !stop_vertices_check[solution[size - 1]]) {
+    if (!stop_vertices_check[solution[0]] || !stop_vertices_check[solution[size - 1]]) {
         return 0;
     }
-    for(int i = 1; i < size; ++i) {
-        if(!graph[solution[i - 1]][solution[i]]) {
+    for (int i = 1; i < size; ++i) {
+        if (!graph[solution[i - 1]][solution[i]]) {
             return 0;
         }
     }
@@ -36,10 +37,10 @@ bool is_valid_solution(vec_int solution){
 int fitness(vec_int solution) {
     int max_subpath = 0;
     int cur_subpath = 0;
-    for(int i = 1; i < n; ++i) {
+    for (int i = 1; i < n; ++i) {
         cur_subpath += graph[solution[i - 1]][solution[i]];
-        if(stop_vertices_check[solution[i]]) {
-            if(max_subpath < cur_subpath) {
+        if (stop_vertices_check[solution[i]]) {
+            if (max_subpath < cur_subpath) {
                 max_subpath = cur_subpath;
             }
             cur_subpath = 0;
@@ -48,22 +49,22 @@ int fitness(vec_int solution) {
     return max_subpath;
 }
 
-void populate(vec_vec_int& population){
+void populate(vec_vec_int& population) {
     int new_solutions = population_size - population.size();
     vec_int permutation(n);
-    for(int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
         permutation[i] = i;
     }
     std::random_device rd;
     std::default_random_engine rng(rd());
-    for(int i = 0; i < new_solutions; ++i) {
+    for (int i = 0; i < new_solutions; ++i) {
         int attempts = 0;
         const int max_attempts = 100000;
         do {
             std::shuffle(permutation.begin(), permutation.end(), rng);
             ++attempts;
-        } while(!is_valid_solution(permutation) && attempts < max_attempts);
-        if(attempts < max_attempts) {
+        } while (!is_valid_solution(permutation) && attempts < max_attempts);
+        if (attempts < max_attempts) {
             population.push_back(permutation);
         }
     }
@@ -75,14 +76,14 @@ void mutate(std::vector<std::vector<int>>& population, const std::vector<bool>& 
     std::uniform_real_distribution<double> dis(0.0, 1.0);
 
     double total_fitness = 0.0;
-    for(vec_int member : population) {
+    for (vec_int member : population) {
         total_fitness += fitness(member);
     }
 
-    for(int i = 0; i < population.size(); ++i) {
+    for (int i = 0; i < population.size(); ++i) {
         double mutation_probability = 1.0 - (static_cast<double>(fitness(population[i])) / total_fitness);
 
-        if(dis(gen) <= mutation_probability) {
+        if (dis(gen) <= mutation_probability) {
             std::vector<int>& individual = population[i];
             std::uniform_int_distribution<int> dist(0, individual.size() - 1);
             int swap_position = dist(gen);
@@ -114,14 +115,14 @@ void mutate(std::vector<std::vector<int>>& population, const std::vector<bool>& 
 vec_int crossover(vec_int parent_A, vec_int parent_B) {
     vec_int offspring;
     vec_bool included(n, 0);
-    for(int i = 0; i < n / 2; ++i) {
-        if(parent_A[i] != parent_B[n - 1]) {
+    for (int i = 0; i < n / 2; ++i) {
+        if (parent_A[i] != parent_B[n - 1]) {
             offspring.push_back(parent_A[i]);
             included[parent_A[i]] = 1;
         }
     }
-    for(int i = 0; i < n; ++i) {
-        if(!included[parent_B[i]]) {
+    for (int i = 0; i < n; ++i) {
+        if (!included[parent_B[i]]) {
             offspring.push_back(parent_B[i]);
         }
     }
@@ -130,9 +131,8 @@ vec_int crossover(vec_int parent_A, vec_int parent_B) {
 
 vec_vec_int rank_based_selection(vec_vec_int& population) {
     vec_vec_int selected_parents;
-    std::sort(population.begin(), population.end(), [](const vec_int& a, const vec_int& b) {
-        return fitness(a) < fitness(b);
-    });
+    std::sort(population.begin(), population.end(),
+              [](const vec_int& a, const vec_int& b) { return fitness(a) < fitness(b); });
     double total_rank = (population_size * (population_size + 1)) / 2.0;
     std::vector<double> selection_probabilities(population_size);
     for (int i = 0; i < population_size; ++i) {
@@ -159,7 +159,7 @@ void evolve_population(vec_vec_int& old_generation) {
     vec_vec_int parents = rank_based_selection(old_generation);
     vec_vec_int new_generation = old_generation;
     new_generation.erase(new_generation.begin() + elite_size, new_generation.end());
-    for(int i = 1; i < parents.size(); i += 2) {
+    for (int i = 1; i < parents.size(); i += 2) {
         vec_vec_int offsprings;
         vec_int parent_A = parents[i - 1];
         vec_int parent_B = parents[i];
@@ -169,17 +169,16 @@ void evolve_population(vec_vec_int& old_generation) {
         offsprings.push_back(crossover(parent_B, parent_A));
         offsprings.push_back(crossover(A_tnerap, parent_B));
         offsprings.push_back(crossover(B_tnerap, parent_A));
-        for(vec_int offspring : offsprings) {
-            if(is_valid_solution(offspring)) {
+        for (vec_int offspring : offsprings) {
+            if (is_valid_solution(offspring)) {
                 new_generation.push_back(offspring);
             }
         }
     }
     populate(new_generation);
     mutate(new_generation, stop_vertices_check);
-    std::sort(new_generation.begin(), new_generation.end(), [](const vec_int& a, const vec_int& b) {
-        return fitness(a) < fitness(b);
-    });
+    std::sort(new_generation.begin(), new_generation.end(),
+              [](const vec_int& a, const vec_int& b) { return fitness(a) < fitness(b); });
     new_generation.erase(new_generation.begin() + population_size, new_generation.end());
     populate(new_generation);
     old_generation = new_generation;
@@ -194,7 +193,7 @@ void dfs(int n, int v, std::vector<std::vector<int>>& graph, std::vector<bool>& 
     }
 }
 
-bool is_connected(int n, std::vector<std::vector<int>> &graph) {
+bool is_connected(int n, std::vector<std::vector<int>>& graph) {
     std::vector<bool> visited(n, 0);
     dfs(n, 0, graph, visited);
     for (bool visit : visited) {
@@ -207,27 +206,27 @@ bool is_connected(int n, std::vector<std::vector<int>> &graph) {
 
 int main(int argc, char** argv) {
     Utils utils = Utils();
-    if(argc < 2) {
+    if (argc < 2) {
         std::cerr << "needs both paths to data file and to output the solution as argumets\n";
         return -1;
     }
     std::string test_data_path = argv[1];
     utils.read_data_from_json(test_data_path, n, s, graph, stop_vertices);
-    if(!is_connected(n, graph)){
+    if (!is_connected(n, graph)) {
         std::cout << -2 << '\n';
         return 0;
     }
     stop_vertices_check = vec_bool(n, 0);
-    for(auto &v : stop_vertices) {
+    for (auto& v : stop_vertices) {
         stop_vertices_check[v] = 1;
     }
 
     vec_vec_int best_population;
     auto start = std::chrono::high_resolution_clock::now();
-    for(int iter = 0; iter < 1000; ++iter) {
+    for (int iter = 0; iter < 1000; ++iter) {
         vec_vec_int population;
         populate(population);
-        for(int i = 0; i < number_of_generations; ++i) {
+        for (int i = 0; i < number_of_generations; ++i) {
             evolve_population(population);
         }
         if (iter == 0) best_population = population;
@@ -236,8 +235,7 @@ int main(int argc, char** argv) {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     double avg_micro = (double)duration / 1000.0;
 
-    for(int i = 0; i < n; ++i)
-        std::cout << best_population[0][i] << ' ';
+    for (int i = 0; i < n; ++i) std::cout << best_population[0][i] << ' ';
     std::cout << fitness(best_population[0]) << '\n';
     std::cout << avg_micro << '\n';
     return 0;
